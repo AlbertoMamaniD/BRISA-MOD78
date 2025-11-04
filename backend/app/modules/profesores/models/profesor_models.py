@@ -5,9 +5,6 @@ from datetime import datetime
 
 Base = declarative_base()
 
-# ------------------------------
-# MODELOS
-# ------------------------------
 class Cargo(Base):
     __tablename__ = "cargos"
 
@@ -33,3 +30,18 @@ class Profesor(Base):
     # Relación con cargo
     id_cargo = Column(Integer, ForeignKey("cargos.id_cargo"), nullable=True)
     cargo = relationship("Cargo", backref="profesores")
+
+class Materia(Base):
+    __tablename__ = "materias"
+    
+    id_materia = Column(Integer, primary_key=True, autoincrement=True)
+    nombre_materia = Column(String(100), nullable=False)
+    nivel = Column(String(50), nullable=False)
+
+class Curso(Base):
+    __tablename__ = "cursos"
+    
+    id_curso = Column(Integer, primary_key=True, autoincrement=True)
+    nombre_curso = Column(String(100), nullable=False)
+    nivel = Column(String(50), nullable=False)
+    gestion = Column(String(10), nullable=False)

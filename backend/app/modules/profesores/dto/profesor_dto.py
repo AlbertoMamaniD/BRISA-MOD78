@@ -2,9 +2,6 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional
 from datetime import datetime
 
-# ------------------------------
-# DTOs PROFESOR
-# ------------------------------
 class ProfesorCreateDTO(BaseModel):
     ci: str
     nombres: str
@@ -30,11 +27,8 @@ class ProfesorReadDTO(BaseModel):
     nombre_cargo: Optional[str] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
-# ------------------------------
-# DTOs CARGO
-# ------------------------------
 class CargoReadDTO(BaseModel):
     id_cargo: int
     nombre_cargo: str
@@ -43,4 +37,21 @@ class CargoReadDTO(BaseModel):
     fecha_creacion: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
+
+class MateriaReadDTO(BaseModel):
+    id_materia: int
+    nombre_materia: str
+    nivel: str
+
+    class Config:
+        from_attributes = True
+
+class CursoReadDTO(BaseModel):
+    id_curso: int
+    nombre_curso: str
+    nivel: str
+    gestion: str
+
+    class Config:
+        from_attributes = True

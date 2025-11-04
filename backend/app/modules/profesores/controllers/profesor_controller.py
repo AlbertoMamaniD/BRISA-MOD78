@@ -1,15 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
-
 from app.config.database import get_db
-from app.modules.profesores.dto.profesor_dto import ProfesorCreateDTO, ProfesorReadDTO
-from app.modules.profesores.services.profesor_service import ProfesorService
+from app.modules.profesores.dto.profesor_dto import ProfesorCreateDTO, ProfesorReadDTO, MateriaReadDTO, CursoReadDTO
+from app.modules.profesores.services.profesor_service import ProfesorService, MateriaService, CursoService
 
-router = APIRouter(
-    prefix="/api/profesores",
-    tags=["Profesores"]
-)
+router = APIRouter(prefix="/api/profesores", tags=["Profesores"])
 
 @router.post("/", response_model=ProfesorReadDTO)
 def crear_profesor(profesor: ProfesorCreateDTO, db: Session = Depends(get_db)):
@@ -18,6 +14,16 @@ def crear_profesor(profesor: ProfesorCreateDTO, db: Session = Depends(get_db)):
 @router.get("/", response_model=List[ProfesorReadDTO])
 def listar_profesores(db: Session = Depends(get_db)):
     return ProfesorService.listar_profesores(db)
+
+# Endpoints para materias
+@router.get("/materias", response_model=List[MateriaReadDTO])
+def listar_materias(db: Session = Depends(get_db)):
+    return MateriaService.listar_materias(db)
+
+# Endpoints para cursos
+@router.get("/cursos", response_model=List[CursoReadDTO])
+def listar_cursos(db: Session = Depends(get_db)):
+    return CursoService.listar_cursos(db)
 
 @router.get("/{id_persona}", response_model=ProfesorReadDTO)
 def obtener_profesor(id_persona: int, db: Session = Depends(get_db)):
@@ -39,3 +45,5 @@ def eliminar_profesor(id_persona: int, db: Session = Depends(get_db)):
     if not profesor_eliminado:
         raise HTTPException(status_code=404, detail="Profesor no encontrado")
     return profesor_eliminado
+
+
