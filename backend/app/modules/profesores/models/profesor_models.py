@@ -26,6 +26,10 @@ class Profesor(Base):
     telefono = Column(String(20), nullable=True)
     correo = Column(String(100), nullable=False, unique=True)
     tipo_persona = Column(String(50), nullable=False, default="profesor")
+    # Nuevos campos
+    estado_laboral = Column(String(20), nullable=False, default="activo")
+    fecha_retiro = Column(DateTime, nullable=True)
+    motivo_retiro = Column(String(200), nullable=True)
 
     # Relación con cargo
     id_cargo = Column(Integer, ForeignKey("cargos.id_cargo"), nullable=True)

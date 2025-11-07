@@ -51,10 +51,28 @@ class AsignacionRepository:
 
     @staticmethod
     def create(db: Session, data: dict):
-        asignacion = ProfesorCursoMateria(**data)
+        # Normalizar IDs a enteros
+        id_profesor = int(data.get("id_profesor"))
+        id_curso = int(data.get("id_curso"))
+        id_materia = int(data.get("id_materia"))
+
+        # Evitar duplicados: si ya existe la asignación, devolverla
+        existente = db.query(ProfesorCursoMateria).filter_by(
+            id_profesor=id_profesor,
+            id_curso=id_curso,
+            id_materia=id_materia
+        ).first()
+        if existente:
+            return existente
+
+        asignacion = ProfesorCursoMateria(
+            id_profesor=id_profesor,
+            id_curso=id_curso,
+            id_materia=id_materia
+        )
         db.add(asignacion)
         db.commit()
-        db.refresh(asignacion)
+        # No es necesario db.refresh para entidades con PK compuesta ya provista
         return asignacion
 
     @staticmethod
@@ -78,4 +96,4 @@ class AsignacionRepository:
             .filter(Profesor.id_persona == id_profesor)
             .all()
         )
-    
+

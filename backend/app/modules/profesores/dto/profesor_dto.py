@@ -12,6 +12,10 @@ class ProfesorCreateDTO(BaseModel):
     correo: EmailStr
     tipo_persona: Optional[str] = "profesor"
     id_cargo: Optional[int] = None
+    # Nuevos campos
+    estado_laboral: Optional[str] = "activo"
+    fecha_retiro: Optional[datetime] = None
+    motivo_retiro: Optional[str] = None
 
 class ProfesorReadDTO(BaseModel):
     id_persona: int
@@ -25,6 +29,10 @@ class ProfesorReadDTO(BaseModel):
     tipo_persona: str
     id_cargo: Optional[int] = None
     nombre_cargo: Optional[str] = None
+    # Nuevos campos
+    estado_laboral: Optional[str] = "activo"
+    fecha_retiro: Optional[datetime] = None
+    motivo_retiro: Optional[str] = None
 
     class Config:
         from_attributes = True

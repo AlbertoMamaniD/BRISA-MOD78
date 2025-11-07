@@ -6,7 +6,13 @@ class ProfesorService:
 
     @staticmethod
     def crear_profesor(db: Session, data: ProfesorCreateDTO):
-        return ProfesorRepository.create(db, data.dict())
+        profesor = ProfesorRepository.create(db, data.dict())
+        # Asegurar que se cargue el cargo (si tiene)
+        if profesor.id_cargo:
+           db.refresh(profesor)  # recarga desde BD para traer relaciones
+        dto = ProfesorReadDTO.from_orm(profesor)
+        dto.nombre_cargo = profesor.cargo.nombre_cargo if profesor.cargo else None
+        return dto
 
     @staticmethod
     def listar_profesores(db: Session):
@@ -64,7 +70,9 @@ class AsignacionService:
 
     @staticmethod
     def asignar_materia(db: Session, data: AsignacionCreateDTO):
-        return AsignacionRepository.create(db, data.dict())
+        asign = AsignacionRepository.create(db, data.dict())
+        # devolver DTO simple con ids
+        return AsignacionReadDTO.from_orm(asign)
 
     @staticmethod
     def listar_asignaciones(db: Session):
@@ -73,10 +81,6 @@ class AsignacionService:
 
     @staticmethod
     def listar_por_profesor(db: Session, id_profesor: int):
-        asignaciones = AsignacionRepository.get_by_profesor(db, id_profesor)
-        return [AsignacionReadDTO.from_orm(a) for a in asignaciones]
-    @staticmethod
-    def listar_por_profesor(db: Session, id_profesor: int):
         asignaciones = AsignacionRepository.get_by_profesor_con_nombres(db, id_profesor)
         return [AsignacionReadNombreDTO.from_orm(a) for a in asignaciones]
-    
+
