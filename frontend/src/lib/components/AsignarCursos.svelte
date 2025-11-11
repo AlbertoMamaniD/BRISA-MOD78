@@ -3,7 +3,7 @@
 
   export let idProfesor: number | null = null;
   export let asignaciones: any[] = []; // la lista viene del padre
-  const API_URL = 'http://localhost:8000/api/profesores';
+  const API_URL = "http://localhost:8000/api/profesores";
   const dispatch = createEventDispatcher();
 
   let cursos = [];
@@ -14,31 +14,32 @@
     try {
       const [resCursos, resMaterias] = await Promise.all([
         fetch(`${API_URL}/cursos`),
-        fetch(`${API_URL}/materias`)
+        fetch(`${API_URL}/materias`),
       ]);
       cursos = await resCursos.json();
       materias = await resMaterias.json();
     } catch (error) {
-      console.error('Error:', error);
+      console.error("Error:", error);
     }
   }
 
   function agregarAsignacion() {
     if (!asignacion.id_materia || !asignacion.id_curso) return;
-    const materia = materias.find(m => m.id_materia == asignacion.id_materia);
-    const curso = cursos.find(c => c.id_curso == asignacion.id_curso);
+    const materia = materias.find((m) => m.id_materia == asignacion.id_materia);
+    const curso = cursos.find((c) => c.id_curso == asignacion.id_curso);
     const nuevaAsignacion = {
       id_materia: asignacion.id_materia,
       id_curso: asignacion.id_curso,
       nombre_materia: materia?.nombre_materia,
-      nombre_curso: curso?.nombre_curso
+      nombre_curso: curso?.nombre_curso,
     };
-    dispatch('asignado', nuevaAsignacion);
-    asignacion.id_curso = ""; asignacion.id_materia = "";
+    dispatch("asignado", nuevaAsignacion);
+    asignacion.id_curso = "";
+    asignacion.id_materia = "";
   }
 
   function quitarLocal(index: number, id?: any) {
-    dispatch('remove', { index, id });
+    dispatch("remove", { index, id });
   }
 
   $: cargarDatos();
@@ -61,14 +62,16 @@
       <select bind:value={asignacion.id_curso} class="select-field">
         <option value="">Seleccione un curso</option>
         {#each cursos as curso}
-          <option value={curso.id_curso}>{curso.nombre_curso} - {curso.gestion}</option>
+          <option value={curso.id_curso}
+            >{curso.nombre_curso} - {curso.gestion}</option
+          >
         {/each}
       </select>
     </div>
   </div>
 
   <div class="form-actions">
-    <button 
+    <button
       class="btn-primary"
       disabled={!asignacion.id_materia || !asignacion.id_curso}
       on:click={agregarAsignacion}
@@ -84,9 +87,16 @@
       <div class="asignaciones-grid">
         {#each asignaciones as asig, index (index)}
           <div class="asignacion-card">
-            <div class="materia">{asig.nombre_materia || asig.materia || 'Sin nombre'}</div>
-            <div class="curso">{asig.nombre_curso || asig.curso || 'Sin curso'}</div>
-            <button class="btn-remove" on:click={() => quitarLocal(index, asig.id)}>✕ Quitar</button>
+            <div class="materia">
+              {asig.nombre_materia || asig.materia || "Sin nombre"}
+            </div>
+            <div class="curso">
+              {asig.nombre_curso || asig.curso || "Sin curso"}
+            </div>
+            <button
+              class="btn-remove"
+              on:click={() => quitarLocal(index, asig.id)}>✕ Quitar</button
+            >
           </div>
         {/each}
       </div>

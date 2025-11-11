@@ -1,18 +1,84 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount } from "svelte";
   import { Clock } from "lucide-svelte";
 
-  const API_URL = 'http://localhost:8000/api/profesores';
+  const API_URL = "http://localhost:8000/api/profesores";
 
   let profesores = [];
+
+  // helpers para normalizar nombre y apellidos
+  function getSurname(p: any) {
+    // probar muchas variantes que tu API podría usar
+    const candidates = [
+      p.apellido_paterno,
+      p.apellido_materno,
+      p.apellido,
+      p.apellidos,
+      p.apellido1,
+      p.apellido2,
+      p.last_name,
+      p.lastname,
+      p.surname,
+    ].filter(Boolean);
+    if (candidates.length) return candidates[0].toString().trim();
+
+    // si no hay campo de apellido, probar extraer del final de 'nombres'
+    const nombresRaw = (p.nombres || p.name || p.nombre || "")
+      .toString()
+      .trim();
+    if (nombresRaw) {
+      const parts = nombresRaw.split(/\s+/);
+      if (parts.length > 1) return parts[parts.length - 1];
+    }
+    return "";
+  }
+
+  function getFirstNames(p: any) {
+    const nombresRaw = (p.nombres || p.name || p.nombre || "")
+      .toString()
+      .trim();
+    if (!nombresRaw) return "";
+    const parts = nombresRaw.split(/\s+/);
+    if (parts.length > 1) return parts.slice(0, parts.length - 1).join(" ");
+    return nombresRaw;
+  }
+
+  function buildDisplayName(p: any) {
+    const surname = getSurname(p);
+    const first = getFirstNames(p);
+    if (surname && first) return `${surname} ${first}`;
+    if (surname) return surname;
+    return first || p.fullName || p.nombre_completo || "";
+  }
+
+  function buildInitials(p: any) {
+    const surname = getSurname(p);
+    const first = getFirstNames(p);
+    let a = "",
+      b = "";
+    if (surname) a = surname[0];
+    if (first) b = first.split(/\s+/)[0]?.[0] ?? "";
+    const letters = (a + b).toUpperCase();
+    return letters || ((p.nombres || p.name || "")[0] || "?").toUpperCase();
+  }
 
   onMount(async () => {
     try {
       const response = await fetch(API_URL);
-      if (!response.ok) throw new Error('Error cargando profesores');
-      profesores = await response.json();
+      if (!response.ok) throw new Error("Error cargando profesores");
+      const data = await response.json();
+
+      // normalizar y añadir displayName e initials
+      profesores = (Array.isArray(data) ? data : []).map((p: any) => {
+        const displayName = buildDisplayName(p);
+        const initials = buildInitials(p);
+        return { ...p, displayName, initials };
+      });
+
+      // DEBUG: ver estructura de primer profesor en consola
+      if (profesores.length) console.log("Profesor ejemplo:", profesores[0]);
     } catch (error) {
-      console.error('Error:', error);
+      console.error("Error:", error);
     }
   });
 </script>
@@ -21,18 +87,14 @@
   {#each profesores as profesor}
     <div class="card" role="button" tabindex="0">
       <div class="avatar">
-        {profesor.nombres
-          .split(" ")
-          .map((n) => n[0])
-          .join("")
-          .toUpperCase()}
+        {profesor.initials}
       </div>
 
       <div class="content">
         <div class="top">
-          <div class="nombre">{profesor.nombres}</div>
+          <div class="nombre">{profesor.displayName}</div>
           <span class="materia-pill">
-            {#if profesor.materias.length}
+            {#if profesor.materias?.length}
               {profesor.materias.join(", ")}
             {/if}
           </span>
@@ -57,7 +119,12 @@
             <span class="carga">{profesor.cargaHoraria || 0}</span>
           </div>
           <div class="right">
-            <span class="estado-pill {profesor.estado_laboral.toLowerCase() === 'activo' ? 'activo' : 'inactivo'}">
+            <span
+              class="estado-pill {profesor.estado_laboral.toLowerCase() ===
+              'activo'
+                ? 'activo'
+                : 'inactivo'}"
+            >
               {profesor.estado_laboral}
             </span>
           </div>
@@ -124,9 +191,10 @@
     font-weight: 600;
     color: #1e293b;
     font-size: 0.95rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    /* permitir que el nombre y apellidos se muestren en varias líneas */
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
   }
 
   .materia-pill {
@@ -178,7 +246,9 @@
     color: #64748b;
   }
 
-  .carga { margin-left: 6px; }
+  .carga {
+    margin-left: 6px;
+  }
 
   .estado-pill {
     padding: 6px 10px;

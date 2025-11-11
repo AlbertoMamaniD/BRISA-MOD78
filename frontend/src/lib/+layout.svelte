@@ -12,10 +12,10 @@
     Clock,
   } from "lucide-svelte";
   import { writable } from "svelte/store";
-  import { onMount } from 'svelte';
+  import { onMount } from "svelte";
 
-  const API_URL = 'http://localhost:8000/api/profesores';
-  const API_MATERIAS_URL = 'http://localhost:8000/api/profesores/materias';
+  const API_URL = "http://localhost:8000/api/profesores";
+  const API_MATERIAS_URL = "http://localhost:8000/api/profesores/materias";
 
   // Sidebar
   let abierto = writable(true);
@@ -76,26 +76,29 @@
     try {
       // Cargar profesores
       const responseProfesores = await fetch(API_URL);
-      if (!responseProfesores.ok) throw new Error('Error cargando profesores');
+      if (!responseProfesores.ok) throw new Error("Error cargando profesores");
       const dataProfesores = await responseProfesores.json();
-      console.log('Profesores cargados:', dataProfesores);
+      console.log("Profesores cargados:", dataProfesores);
       profesores = dataProfesores;
 
       // Cargar materias
-      console.log('Intentando cargar materias desde:', API_MATERIAS_URL);
+      console.log("Intentando cargar materias desde:", API_MATERIAS_URL);
       const responseMaterias = await fetch(API_MATERIAS_URL);
-      console.log('Response materias status:', responseMaterias.status);
+      console.log("Response materias status:", responseMaterias.status);
       if (!responseMaterias.ok) {
-        console.error('Error en response materias:', responseMaterias.statusText);
-        throw new Error('Error cargando materias');
+        console.error(
+          "Error en response materias:",
+          responseMaterias.statusText,
+        );
+        throw new Error("Error cargando materias");
       }
       const dataMaterias = await responseMaterias.json();
-      console.log('Materias cargadas (cantidad):', dataMaterias.length);
-      console.log('Materias cargadas (datos):', dataMaterias);
+      console.log("Materias cargadas (cantidad):", dataMaterias.length);
+      console.log("Materias cargadas (datos):", dataMaterias);
       materias = dataMaterias;
-      console.log('Estado materias después de asignar:', materias);
+      console.log("Estado materias después de asignar:", materias);
     } catch (error) {
-      console.error('Error completo:', error);
+      console.error("Error completo:", error);
     }
   });
 
@@ -119,11 +122,14 @@
 
     try {
       const res = await fetch(`${API_URL}/${id}`);
-      if (!res.ok) throw new Error('Error al obtener profesor');
+      if (!res.ok) throw new Error("Error al obtener profesor");
       const data = await res.json();
       profesorEditando = data;
     } catch (err) {
-      console.error('No se pudo recuperar detalles del profesor, usando datos locales:', err);
+      console.error(
+        "No se pudo recuperar detalles del profesor, usando datos locales:",
+        err,
+      );
       profesorEditando = { ...p };
     } finally {
       mostrarNuevoProfesor = true;
@@ -144,10 +150,12 @@
     const savedId = saved.id ?? saved.id_persona ?? null;
 
     if (savedId != null) {
-      const idx = profesores.findIndex(p => (p.id ?? p.id_persona) == savedId);
+      const idx = profesores.findIndex(
+        (p) => (p.id ?? p.id_persona) == savedId,
+      );
       if (idx !== -1) {
         // reemplazar el existente
-        profesores = profesores.map((p, i) => i === idx ? saved : p);
+        profesores = profesores.map((p, i) => (i === idx ? saved : p));
       } else {
         // agregar si no estaba
         profesores = [...profesores, saved];
@@ -168,17 +176,65 @@
 
   $: profesoresFiltrados = profesores.filter((p) => {
     const query = searchQuery.toLowerCase();
-    const cumpleBusqueda = 
+    const cumpleBusqueda =
       p.nombres.toLowerCase().includes(query) ||
       (p.materias && p.materias.some((m) => m.toLowerCase().includes(query))) ||
       (p.cursos && p.cursos.some((c) => c.toLowerCase().includes(query)));
-    
-    const cumpleMateria = 
+
+    const cumpleMateria =
       materiaSeleccionada === "todas" ||
       (p.materias && p.materias.includes(materiaSeleccionada));
-    
+
     return cumpleBusqueda && cumpleMateria;
   });
+
+  // helpers para normalizar nombre y apellidos
+  function getSurname(p: any) {
+    const candidates = [
+      p.apellido_paterno,
+      p.apellido_materno,
+      p.apellido,
+      p.apellidos,
+      p.last_name,
+      p.lastname,
+      p.surname,
+    ].filter(Boolean);
+    if (candidates.length) return candidates[0].toString().trim();
+
+    const nombresRaw = (p.nombres || p.name || p.nombre || "").toString().trim();
+    if (nombresRaw) {
+      const parts = nombresRaw.split(/\s+/);
+      if (parts.length > 1) return parts[parts.length - 1];
+    }
+    return "";
+  }
+
+  function getFirstNames(p: any) {
+    const nombresRaw = (p.nombres || p.name || p.nombre || "").toString().trim();
+    if (!nombresRaw) return "";
+    const parts = nombresRaw.split(/\s+/);
+    if (parts.length > 1) return parts.slice(0, parts.length - 1).join(" ");
+    return nombresRaw;
+  }
+
+  function buildDisplayName(p: any) {
+    const surname = getSurname(p);
+    const first = getFirstNames(p);
+    if (surname && first) return `${surname} ${first}`;
+    if (surname) return surname;
+    return first || p.fullName || p.nombre_completo || "";
+  }
+
+  function buildInitials(p: any) {
+    const surname = getSurname(p);
+    const first = getFirstNames(p);
+    let a = "",
+      b = "";
+    if (surname) a = surname[0];
+    if (first) b = first.split(/\s+/)[0]?.[0] ?? "";
+    const letters = (a + b).toUpperCase();
+    return letters || ((p.nombres || p.name || "")[0] || "?").toUpperCase();
+  }
 </script>
 
 <div class="app">
@@ -205,7 +261,7 @@
 
     <nav>
       {#each menuItems as item, i}
-        <div 
+        <div
           class="menu-item {i === 3 ? 'active' : ''}"
           on:click={() => {
             if (item.label === "Cerrar Sesión") {
@@ -268,10 +324,14 @@
                 <select class="filter-select" bind:value={materiaSeleccionada}>
                   <option value="todas">Todas las materias</option>
                   {#each materias as materia}
-                    <option value={materia.nombre_materia}>{materia.nombre_materia}</option>
+                    <option value={materia.nombre_materia}
+                      >{materia.nombre_materia}</option
+                    >
                   {/each}
                 </select>
-                <span style="color: #64748b; font-size: 0.85rem; margin-left: 8px;">
+                <span
+                  style="color: #64748b; font-size: 0.85rem; margin-left: 8px;"
+                >
                   ({materias.length} materias)
                 </span>
               </div>
@@ -283,19 +343,20 @@
 
             <div class="grid-profesores">
               {#each profesoresFiltrados as profesor}
-                <div class="card" on:click={() => abrirEdicionProfesor(profesor)} role="button" tabindex="0">
+                <div
+                  class="card"
+                  on:click={() => abrirEdicionProfesor(profesor)}
+                  role="button"
+                  tabindex="0"
+                >
                   <div class="avatar">
-                    {profesor.nombres
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")
-                      .toUpperCase()}
+                    {buildInitials(profesor)}
                   </div>
 
                   <div class="content">
                     <div class="top">
-                      <div class="nombre">{profesor.nombres}</div>
-                      <span class="materia-pill">
+                      <div class="nombre">{buildDisplayName(profesor)}</div>
+                       <span class="materia-pill">
                         {#if profesor.materias && profesor.materias.length}
                           {profesor.materias.join(", ")}
                         {/if}
@@ -308,7 +369,9 @@
                           <span class="curso-pill">{curso}</span>
                         {/each}
                         {#if profesor.cursos.length > 2}
-                          <span class="curso-pill">+{profesor.cursos.length - 2}</span>
+                          <span class="curso-pill"
+                            >+{profesor.cursos.length - 2}</span
+                          >
                         {/if}
                       {/if}
                     </div>
@@ -321,8 +384,13 @@
                         <span class="carga">{profesor.cargaHoraria || 0}</span>
                       </div>
                       <div class="right">
-                        <span class="estado-pill {profesor.estado_laboral?.toLowerCase() === 'activo' ? 'activo' : 'inactivo'}">
-                          {profesor.estado_laboral || 'N/A'}
+                        <span
+                          class="estado-pill {profesor.estado_laboral?.toLowerCase() ===
+                          'activo'
+                            ? 'activo'
+                            : 'inactivo'}"
+                        >
+                          {profesor.estado_laboral || "N/A"}
                         </span>
                       </div>
                     </div>
@@ -391,7 +459,7 @@
   }
 
   .brand {
-    display: flex;  
+    display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
@@ -620,7 +688,8 @@
     font-weight: 500;
   }
 
-  input, select {
+  input,
+  select {
     color: #1e293b !important;
   }
 
@@ -696,9 +765,9 @@
     font-weight: 600;
     color: #1e293b;
     font-size: 0.95rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
   }
 
   .materia-pill {
@@ -750,8 +819,8 @@
     color: #64748b;
   }
 
-  .carga { 
-    margin-left: 6px; 
+  .carga {
+    margin-left: 6px;
   }
 
   .estado-pill {
