@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
+  import { createEventDispatcher, onMount } from "svelte";
   import AsignarCursos from "./AsignarCursos.svelte";
+  export let profesorInit: any = null;
 
   const API_URL = 'http://localhost:8000/api/profesores';
  
@@ -22,6 +23,75 @@
   let profesorCreado: any = null;
   let asignacionesGuardadas: any[] = [];
 
+  // --- nueva función para traer asignaciones desde backend y normalizarlas ---
+  async function loadAsignaciones(incomingId: number | string) {
+    try {
+      const res = await fetch(`${API_URL}/${incomingId}/asignaciones`);
+      if (!res.ok) {
+        console.warn('No se pudo obtener asignaciones: ', res.status);
+        return;
+      }
+      const data = await res.json();
+      asignacionesGuardadas = (Array.isArray(data) ? data : []).map((a: any) => ({
+        id: a.id ?? a.id_asignacion ?? a.id_profesor_materia ?? null,
+        id_materia: a.id_materia ?? a.idMateria ?? a.materia_id ?? "",
+        id_curso: a.id_curso ?? a.idCurso ?? a.curso_id ?? "",
+        nombre_materia: a.nombre_materia ?? a.materia_nombre ?? a.materia ?? a.nombre ?? "",
+        nombre_curso: a.nombre_curso ?? a.curso_nombre ?? a.curso ?? a.nombre_curso ?? ""
+      }));
+    } catch (err) {
+      console.warn('Error al recuperar asignaciones del servidor:', err);
+    }
+  }
+
+  // Cuando se recibe profesorInit desde el layout, precargar formulario.
+  // Esto también permite abrir en modo "editar" con datos recuperados del servidor.
+  $: if (profesorInit) {
+    const incomingId = profesorInit.id ?? profesorInit.id_persona ?? null;
+    const currentId = profesor.id ?? profesor.id_persona ?? null;
+    if (incomingId !== currentId) {
+      // Inicializar campos del formulario (como ya tienes)
+      profesor = { 
+        ci: profesorInit.ci ?? profesorInit.documento ?? profesor.ci ?? "",
+        nombres: profesorInit.nombres ?? profesorInit.name ?? "",
+        apellido_paterno: profesorInit.apellido_paterno ?? "",
+        apellido_materno: profesorInit.apellido_materno ?? "",
+        direccion: profesorInit.direccion ?? "",
+        telefono: profesorInit.telefono ?? profesorInit.phone ?? "",
+        correo: profesorInit.correo ?? profesorInit.email ?? profesorInit.email_address ?? "",
+        tipo_persona: profesorInit.tipo_persona ?? "profesor",
+        estado_laboral: profesorInit.estado_laboral ?? "activo",
+        id: incomingId
+      };
+
+      // Si el backend ya manda materias/cursos en profesorInit, crear asignaciones temporales
+      asignacionesGuardadas = [];
+      if (Array.isArray(profesorInit.materias) || Array.isArray(profesorInit.cursos)) {
+        const ms = profesorInit.materias ?? [];
+        const cs = profesorInit.cursos ?? [];
+        asignacionesGuardadas = ms.map((m: string, i: number) => ({
+          id_materia: "", id_curso: "", nombre_materia: m, nombre_curso: cs[i] ?? ""
+        }));
+      }
+
+      // cargar asignaciones reales desde la API (si existe id)
+      if (incomingId) {
+        loadAsignaciones(incomingId);
+      }
+    }
+  } else {
+    // si profesorInit es null (nuevo), asegurarse formulario limpio
+    // evita sobrescribir si el usuario está editando (se ejecuta solo cuando profesorInit cambia a null)
+    if (!profesor.id && profesor.nombres === "") {
+      profesor = {
+        ci: "", nombres: "", apellido_paterno: "", apellido_materno: "",
+        direccion: "", telefono: "", correo: "", tipo_persona: "profesor",
+        estado_laboral: "activo"
+      };
+      asignacionesGuardadas = [];
+    }
+  }
+
   function validarForm() {
     let isValid = true;
     formErrors = { ci: false, nombres: false, apellido_paterno: false, correo: false };
@@ -41,52 +111,166 @@
     }
 
     try {
-      // 1. Crear profesor
-      const resProf = await fetch(API_URL, {
-        method: 'POST',
+      // Determinar si es edición (tiene id) o creación
+      const isEdit = Boolean(profesor.id || profesor.id_persona);
+      const method = isEdit ? 'PUT' : 'POST';
+      const url = isEdit ? `${API_URL}/${profesor.id ?? profesor.id_persona}` : API_URL;
+
+      const resProf = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(profesor)
       });
 
-      if (!resProf.ok) throw new Error('Error al crear profesor');
+      if (!resProf.ok) throw new Error('Error al guardar profesor');
       profesorCreado = await resProf.json();
 
-      // 2. Asignar todo lo que esté en la lista
-      if (asignacionesGuardadas.length > 0) {
-        const promesas = asignacionesGuardadas.map(asig =>
+      // Guardar solo las asignaciones NUEVAS (sin id)
+      const nuevas = asignacionesGuardadas.filter(a => !a.id);
+      if (nuevas.length > 0) {
+        const promesas = nuevas.map(asig =>
           fetch(`${API_URL}/asignaciones`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              id_profesor: Number(profesorCreado.id_persona),
+              id_profesor: Number(profesorCreado.id_persona || profesorCreado.id || profesor.id),
               id_curso: Number(asig.id_curso),
               id_materia: Number(asig.id_materia)
             })
           })
         );
-        // Esperar respuestas y comprobar errores
         const resultados = await Promise.all(promesas);
-        for (const r of resultados) {
+        // reemplazar las nuevas entradas locales con las respuestas que incluyen id si vienen
+        for (let i = 0; i < resultados.length; i++) {
+          const r = resultados[i];
           if (!r.ok) {
             const err = await r.json().catch(()=>null);
             throw new Error(err?.detail || 'Error al guardar una asignación');
+          } else {
+            const created = await r.json().catch(()=>null);
+            // intentar asociar el id devuelto con la entrada correspondiente (por materia+curso)
+            const newAsig = nuevas[i];
+            const idx = asignacionesGuardadas.findIndex(a => !a.id && a.id_materia == newAsig.id_materia && a.id_curso == newAsig.id_curso);
+            if (idx !== -1) {
+              asignacionesGuardadas[idx] = {
+                id: created?.id ?? created?.id_asignacion ?? null,
+                id_materia: created?.id_materia ?? newAsig.id_materia,
+                id_curso: created?.id_curso ?? newAsig.id_curso,
+                nombre_materia: created?.nombre_materia ?? newAsig.nombre_materia,
+                nombre_curso: created?.nombre_curso ?? newAsig.nombre_curso
+              };
+            }
           }
         }
       }
 
+      // Construir objeto para UI (asegurar que incluya id)
+      const materiasUI = [...new Set(asignacionesGuardadas.map(a => (a.nombre_materia || a.materia || '').toString()).filter(Boolean))];
+      const cursosUI = [...new Set(asignacionesGuardadas.map(a => (a.nombre_curso || a.curso || '').toString()).filter(Boolean))];
+
+      const profesorParaUI = {
+        ...profesorCreado,
+        id: profesorCreado.id ?? profesorCreado.id_persona ?? profesor.id,
+        nombres: profesorCreado.nombres || profesor.nombres,
+        materias: materiasUI,
+        cursos: cursosUI,
+        estado_laboral: profesorCreado.estado_laboral || profesor.estado_laboral
+      };
+
       alert('Profesor y asignaciones guardados exitosamente');
-      dispatch('save', profesorCreado);
+      dispatch('save', profesorParaUI);
     } catch (error: any) {
       alert('Error: ' + error.message);
     }
   }
 
-  function cancelar() {
-    dispatch("cancel");
+  async function cancelar() {
+    try {
+      // Limpiar datos del formulario
+      profesor = {
+        ci: "", nombres: "", apellido_paterno: "", apellido_materno: "",
+        direccion: "", telefono: "", correo: "", tipo_persona: "profesor",
+        estado_laboral: "activo"
+      };
+      asignacionesGuardadas = [];
+      formErrors = { ci: false, nombres: false, apellido_paterno: false, correo: false };
+      
+      // Notificar al servidor (opcional)
+      await fetch(`${API_URL}/cancelar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      }).catch(() => {}); // Ignorar errores de red
+      
+      // Despachar evento al componente padre
+      dispatch("cancel");
+    } catch (error) {
+      console.error('Error al cancelar:', error);
+      dispatch("cancel");
+    }
   }
 
   function onAsignado(e: CustomEvent) {
-    asignacionesGuardadas = [...asignacionesGuardadas, e.detail];
+    const nuevaAsignacion = {
+      id_materia: e.detail.id_materia,
+      id_curso: e.detail.id_curso,
+      // mantener nombres estándar que usa el padre
+      nombre_materia: e.detail.nombre_materia || e.detail.materia,
+      nombre_curso: e.detail.nombre_curso || e.detail.curso
+    };
+
+    // Evitar duplicados (misma materia+curso)
+    const exists = asignacionesGuardadas.some(a => (a.id_materia == nuevaAsignacion.id_materia && a.id_curso == nuevaAsignacion.id_curso));
+    if (!exists) {
+      asignacionesGuardadas = [...asignacionesGuardadas, nuevaAsignacion];
+    } else {
+      // opcional: feedback
+      // alert('Esa asignación ya fue agregada');
+    }
+  }
+
+  // ajustar eliminarAsignacion para aceptar objeto o índice
+  async function eliminarAsignacion(arg: number | { index?: number; id?: any }) {
+    let index = -1;
+    let id = null;
+
+    if (typeof arg === 'number') {
+      index = arg;
+    } else {
+      index = typeof arg.index === 'number' ? arg.index : -1;
+      id = arg.id ?? null;
+    }
+
+    if (index === -1 && id == null) {
+      // intentar buscar por id si nos pasaron solo id
+      if (arg && typeof arg === 'object' && arg.id) {
+        index = asignacionesGuardadas.findIndex(a => a.id == arg.id);
+        id = arg.id;
+      } else {
+        return;
+      }
+    }
+
+    const asig = asignacionesGuardadas[index];
+    if (!asig) return;
+
+    const asignacionId = id ?? asig.id ?? asig.id_asignacion ?? null;
+    if (asignacionId) {
+      try {
+        const res = await fetch(`${API_URL}/asignaciones/${asignacionId}`, {
+          method: 'DELETE'
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(()=>null);
+          throw new Error(err?.detail || 'Error al eliminar asignación en servidor');
+        }
+      } catch (err: any) {
+        alert('No se pudo eliminar la asignación en el servidor: ' + (err?.message || err));
+        return;
+      }
+    }
+
+    // quitar de la lista local (reactivo)
+    asignacionesGuardadas = asignacionesGuardadas.filter((_, i) => i !== index);
   }
 </script>
 
@@ -174,11 +358,14 @@
       <h3>Asignación de Materias y Cursos</h3>
       <p class="subtitle">Agregue todas las asignaciones antes de guardar</p>
 
-      <!-- Solo el formulario de asignación -->
-      <AsignarCursos
-        idProfesor={null}
-        on:asignado={onAsignado}
-      />
+      <div class="asignar-form">
+        <AsignarCursos
+          idProfesor={profesor.id ?? null}
+          asignaciones={asignacionesGuardadas}
+          on:asignado={onAsignado}
+          on:remove={(e) => eliminarAsignacion(e.detail)}
+        />
+      </div>
     </section>
   </div>
 </div>
@@ -388,6 +575,26 @@
     font-size: 0.9rem;
     color: #1e293b;
     margin: 0 0 12px;
+  }
+  .btn-remove {
+    width: 100%;
+    margin-top: 8px;
+    padding: 6px 8px;
+    border: 1px solid #fecaca;
+    background: #fee2e2;
+    color: #dc2626;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+    font-weight: 500;
+  }
+  .btn-remove:hover {
+    background: #fca5a5;
+    border-color: #f87171;
+  }
+  .btn-remove:active {
+    transform: scale(0.98);
   }
   @media (min-width: 640px) {
     .form-row:not(.single) {

@@ -70,6 +70,7 @@
   let profesorSeleccionado: Profesor | null = null;
   let searchQuery = "";
   let mostrarNuevoProfesor = false;
+  let profesorEditando: Profesor | null = null;
 
   onMount(async () => {
     try {
@@ -98,8 +99,35 @@
     }
   });
 
-  function seleccionarProfesor(p: Profesor) {
-    profesorSeleccionado = p;
+  // ya no selecciona para ver detalles al hacer click: ahora abre el editor
+  async function abrirEdicionProfesor(p?: Profesor) {
+    // abrir en blanco
+    if (!p) {
+      profesorEditando = null;
+      mostrarNuevoProfesor = true;
+      return;
+    }
+
+    // intentar recuperar datos completos desde el servidor
+    const id = p.id ?? (p as any).id_persona;
+    if (!id) {
+      // fallback a los datos que ya tenemos
+      profesorEditando = { ...p };
+      mostrarNuevoProfesor = true;
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/${id}`);
+      if (!res.ok) throw new Error('Error al obtener profesor');
+      const data = await res.json();
+      profesorEditando = data;
+    } catch (err) {
+      console.error('No se pudo recuperar detalles del profesor, usando datos locales:', err);
+      profesorEditando = { ...p };
+    } finally {
+      mostrarNuevoProfesor = true;
+    }
   }
 
   function volverALista() {
@@ -108,17 +136,34 @@
   }
 
   function abrirNuevoProfesor() {
-    mostrarNuevoProfesor = true;
+    abrirEdicionProfesor(null);
   }
 
   function onSaveProfesor(event: CustomEvent) {
-    const nuevoProfesor = event.detail;
-    profesores = [...profesores, nuevoProfesor];
+    const saved = event.detail;
+    const savedId = saved.id ?? saved.id_persona ?? null;
+
+    if (savedId != null) {
+      const idx = profesores.findIndex(p => (p.id ?? p.id_persona) == savedId);
+      if (idx !== -1) {
+        // reemplazar el existente
+        profesores = profesores.map((p, i) => i === idx ? saved : p);
+      } else {
+        // agregar si no estaba
+        profesores = [...profesores, saved];
+      }
+    } else {
+      // sin id, agregar igual
+      profesores = [...profesores, saved];
+    }
+
     mostrarNuevoProfesor = false;
+    profesorEditando = null;
   }
 
   function onCancelNuevoProfesor() {
     mostrarNuevoProfesor = false;
+    profesorEditando = null;
   }
 
   $: profesoresFiltrados = profesores.filter((p) => {
@@ -184,6 +229,7 @@
   <div class="main-wrap">
     {#if mostrarNuevoProfesor}
       <NuevoProfesor
+        profesorInit={profesorEditando}
         on:save={onSaveProfesor}
         on:cancel={onCancelNuevoProfesor}
       />
@@ -237,7 +283,7 @@
 
             <div class="grid-profesores">
               {#each profesoresFiltrados as profesor}
-                <div class="card" on:click={() => seleccionarProfesor(profesor)} role="button" tabindex="0">
+                <div class="card" on:click={() => abrirEdicionProfesor(profesor)} role="button" tabindex="0">
                   <div class="avatar">
                     {profesor.nombres
                       .split(" ")

@@ -1,17 +1,14 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
-  
-  export let idProfesor: number;
+
+  export let idProfesor: number | null = null;
+  export let asignaciones: any[] = []; // la lista viene del padre
   const API_URL = 'http://localhost:8000/api/profesores';
   const dispatch = createEventDispatcher();
 
   let cursos = [];
   let materias = [];
-  let asignacionesPendientes = [];
-  let asignacion = {
-    id_curso: "",
-    id_materia: ""
-  };
+  let asignacion = { id_curso: "", id_materia: "" };
 
   async function cargarDatos() {
     try {
@@ -19,7 +16,6 @@
         fetch(`${API_URL}/cursos`),
         fetch(`${API_URL}/materias`)
       ]);
-
       cursos = await resCursos.json();
       materias = await resMaterias.json();
     } catch (error) {
@@ -28,28 +24,21 @@
   }
 
   function agregarAsignacion() {
-    if (!asignacion.id_materia || !asignacion.id_curso) {
-      alert('Seleccione materia y curso');
-      return;
-    }
-
-    // Encontrar los nombres para mostrar
+    if (!asignacion.id_materia || !asignacion.id_curso) return;
     const materia = materias.find(m => m.id_materia == asignacion.id_materia);
     const curso = cursos.find(c => c.id_curso == asignacion.id_curso);
-
     const nuevaAsignacion = {
-      ...asignacion,
+      id_materia: asignacion.id_materia,
+      id_curso: asignacion.id_curso,
       nombre_materia: materia?.nombre_materia,
       nombre_curso: curso?.nombre_curso
     };
-
-    // Agregar a la lista local y notificar al padre
-    asignacionesPendientes = [...asignacionesPendientes, nuevaAsignacion];
     dispatch('asignado', nuevaAsignacion);
+    asignacion.id_curso = ""; asignacion.id_materia = "";
+  }
 
-    // Limpiar selección
-    asignacion.id_curso = "";
-    asignacion.id_materia = "";
+  function quitarLocal(index: number, id?: any) {
+    dispatch('remove', { index, id });
   }
 
   $: cargarDatos();
@@ -88,15 +77,16 @@
     </button>
   </div>
 
-  <!-- Lista de asignaciones pendientes -->
-  {#if asignacionesPendientes.length > 0}
+  <!-- Lista de asignaciones PENDIENTES (se muestra aquí) -->
+  {#if asignaciones && asignaciones.length > 0}
     <div class="asignaciones-list">
       <h4>Asignaciones Pendientes</h4>
       <div class="asignaciones-grid">
-        {#each asignacionesPendientes as asig}
+        {#each asignaciones as asig, index (index)}
           <div class="asignacion-card">
-            <div class="materia">{asig.nombre_materia}</div>
-            <div class="curso">{asig.nombre_curso}</div>
+            <div class="materia">{asig.nombre_materia || asig.materia || 'Sin nombre'}</div>
+            <div class="curso">{asig.nombre_curso || asig.curso || 'Sin curso'}</div>
+            <button class="btn-remove" on:click={() => quitarLocal(index, asig.id)}>✕ Quitar</button>
           </div>
         {/each}
       </div>
@@ -175,20 +165,26 @@
 
   .asignaciones-list {
     margin-top: 20px;
+    padding: 10px;
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
   }
 
   .asignaciones-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 12px;
-    margin-top: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
   }
 
   .asignacion-card {
-    background: white;
-    border: 1px solid #e2e8f0;
+    background: #f9fafb;
+    padding: 10px;
     border-radius: 6px;
-    padding: 12px;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
 
   .materia {
@@ -197,15 +193,16 @@
   }
 
   .curso {
-    color: #64748b;
     font-size: 0.875rem;
-    margin-top: 4px;
+    color: #475569;
   }
 
-  h4 {
-    color: #1e293b;
-    font-size: 0.95rem;
-    margin: 0;
+  .btn-remove {
+    background: transparent;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    font-size: 1.25rem;
   }
 
   @media (max-width: 640px) {
