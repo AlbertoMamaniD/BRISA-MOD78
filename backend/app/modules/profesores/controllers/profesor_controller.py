@@ -14,7 +14,7 @@ from app.modules.profesores.services.profesor_service import (
 )
 
 router = APIRouter(prefix="/api/profesores", tags=["Profesores"])
-
+#DOTAS EL CAPO
 
 # ============ ENDPOINTS ESTÁTICOS (PRIMERO) ============
 
