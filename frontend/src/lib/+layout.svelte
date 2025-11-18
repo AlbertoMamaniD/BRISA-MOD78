@@ -20,7 +20,7 @@
   const API_MATERIAS_URL = "http://localhost:8000/api/profesores/materias";
   const API_BLOQUES_URL = "http://localhost:8000/api/profesores";
   
-  // Configuración de polling (actualización automática cada X segundos)
+  // Configuración de polling (actualización automática cada X cantidad segundos)
   const POLLING_INTERVAL = 5000; // 5 segundos
   const FAST_POLLING_INTERVAL = 2000; // 2 segundos (después de cambios)
 
