@@ -167,7 +167,7 @@
         }
       }
       
-      // 3) Crear
+      // 3) Crear los bloques
       if (bloquesPendientesCrear.length > 0) {
         for (const b of bloquesPendientesCrear) {
           const body = {
