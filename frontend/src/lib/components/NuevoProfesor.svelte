@@ -167,7 +167,7 @@
         }
       }
       
-      // 3) Crear los bloques
+      // 3) Crear los bloques de horarios pendientes
       if (bloquesPendientesCrear.length > 0) {
         for (const b of bloquesPendientesCrear) {
           const body = {
