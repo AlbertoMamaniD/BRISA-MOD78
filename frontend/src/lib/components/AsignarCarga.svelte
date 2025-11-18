@@ -43,6 +43,12 @@
   let errorMessage = "";
   let gestionActual = "2025";
 
+  // Bloques calculados / cambios locales
+  // bloquesAEliminar: bloques que estaban en BD (bloquesHorarios) y ya no están en bloquesEditando
+  let bloquesAEliminar: BloqueHorario[] = [];
+  // indicador si hay modificaciones locales que deben guardarse (crear/actualizar/eliminar)
+  let hayCambiosLocal = false;
+
   // Nuevo bloque temporal
   let nuevoBloque: Partial<BloqueHorario> & { asignacionId?: string } = {
     asignacionId: "",
@@ -201,10 +207,13 @@
 
   // Guardado: si autoSave===false -> emitimos los cambios y NO hacemos requests (temporal).
   async function guardarCambios(confirm: boolean = false) {
-    // Determinar bloques a eliminar (existían en DB y ya no están)
-    const bloquesAEliminar = bloquesHorarios.filter(bloqueDb =>
-      !bloquesEditando.some(bloqueEdit => bloqueEdit.id_bloque === bloqueDb.id_bloque)
-    );
+    // reutilizar el cálculo reactivo de bloquesAEliminar
+    // (si por alguna razón no está calculado, calcularlo aquí)
+    if (!Array.isArray(bloquesAEliminar) || bloquesAEliminar.length === 0) {
+      bloquesAEliminar = bloquesHorarios.filter(bloqueDb =>
+        !bloquesEditando.some(bloqueEdit => bloqueEdit.id_bloque === bloqueDb.id_bloque)
+      );
+    }
 
     // Si no está activado autoSave, emitimos los cambios al padre para persistencia posterior
     if (!autoSave) {
@@ -269,6 +278,34 @@
     }
   }
 
+  // REACTIVIDAD: calcular bloquesAEliminar y si hay cambios locales
+  $: {
+    // determinar bloques eliminados (los que estaban en BD y ya no están en edición)
+    bloquesAEliminar = bloquesHorarios.filter(bloqueDb =>
+      !bloquesEditando.some(bloqueEdit => bloqueEdit.id_bloque === bloqueDb.id_bloque)
+    );
+
+    // detectar nuevos bloques (sin id_bloque)
+    const nuevos = bloquesEditando.some(b => !b.id_bloque);
+
+    // detectar cambios en bloques existentes (comparando campos relevantes)
+    const modificados = bloquesEditando.some(b => {
+      if (!b.id_bloque) return false;
+      const orig = bloquesHorarios.find(o => o.id_bloque === b.id_bloque);
+      if (!orig) return false;
+      return (
+        orig.hora_inicio !== b.hora_inicio ||
+        orig.hora_fin !== b.hora_fin ||
+        orig.dia_semana !== b.dia_semana ||
+        orig.id_curso !== b.id_curso ||
+        orig.id_materia !== b.id_materia ||
+        (orig.observaciones || "") !== (b.observaciones || "")
+      );
+    });
+
+    hayCambiosLocal = nuevos || modificados || (bloquesAEliminar.length > 0);
+  }
+
   // Cerrar modal
   function cerrar() {
     // Resetear estado al cerrar
@@ -282,6 +319,31 @@
     };
     errorMessage = "";
     dispatch("cerrar");
+  }
+
+  // REACTIVIDAD: cuando cambian las asignaciones disponibles, actualizar la UI y bloques en edición
+  $: if (asignaciones) {
+    // construir conjunto de combinaciones válidas "id_materia-id_curso"
+    const asignKeys = new Set(asignaciones.map(a => `${a.id_materia}-${a.id_curso}`));
+
+    // Si la selección actual del nuevo bloque ya no existe, limpiar la selección
+    if (nuevoBloque.asignacionId && !asignKeys.has(nuevoBloque.asignacionId)) {
+      nuevoBloque.asignacionId = "";
+      nuevoBloque.id_materia = undefined;
+      nuevoBloque.id_curso = undefined;
+    }
+
+    // Filtrar bloques en edición: eliminar aquellos que ya no poseen asignación válida.
+    // Esto garantiza que, si en el padre se eliminó una asignación (por ejemplo usuario marcó
+    // para eliminar una materia/curso), los bloques dependientes se retiren del editor y
+    // queden marcados para eliminación al persistir (la detección de eliminados se hace
+    // comparando con bloquesHorarios cargados desde BD).
+    const removed = bloquesEditando.filter(b => !asignKeys.has(`${b.id_materia}-${b.id_curso}`));
+    if (removed.length > 0) {
+      bloquesEditando = bloquesEditando.filter(b => asignKeys.has(`${b.id_materia}-${b.id_curso}`));
+      // informar al usuario (mensaje informativo no bloqueante)
+      errorMessage = "⚠️ Algunas cargas han sido removidas porque cambió la lista de asignaciones.";
+    }
   }
 
   // Calcular duración en horas
@@ -490,10 +552,11 @@
         <button class="btn-cancelar" on:click={cerrar} disabled={guardando}>
           Cancelar
         </button>
+        <!-- habilitar si hay cambios locales (crear/actualizar/eliminar) o si autoSave está activado -->
         <button 
           class="btn-guardar" 
           on:click={() => guardarCambios(true)}
-          disabled={guardando || bloquesEditando.length === 0}
+          disabled={guardando || (!autoSave && !hayCambiosLocal)}
         >
           {#if guardando}
             <span class="spinner"></span> Guardando...

@@ -2,7 +2,7 @@
   import { createEventDispatcher, onMount } from "svelte";
   import AsignarMaterias from "./AsignarMaterias.svelte";
   import AsignarCursos from "./AsignarCursos.svelte";
-
+  import AsignarCarga from "./AsignarCarga.svelte";
   export let profesorInit: any = null;
 
   const API_URL = 'http://localhost:8000/api/profesores';
@@ -15,18 +15,45 @@
     nivel_enseñanza: "todos", observaciones_profesor: ""
   };
 
+  let formData = {
+    ci: "", nombres: "", apellido_paterno: "", apellido_materno: "", 
+    direccion: "", telefono: "", correo: "",
+    tipo_persona: "profesor", estado_laboral: "activo",
+    id_persona: null as number | null, id_profesor: null as number | null,
+    especialidad: "", titulo_academico: "", nivel_enseñanza: "todos", 
+    observaciones_profesor: "",
+    id_cargo: null as number | null
+  };
+
+  
+
   let formErrors = {};
   let profesorCreado: any = null;
   let asignacionesPendientes: any[] = [];
   let isEditMode = false;
   let profesorId: number | null = null;
   let cargos: any[] = [];
-  
+
+  // --- Bloques pendientes (para integración con AsignarCarga) ---
+  let bloquesPendientesCrear: any[] = [];
+  let bloquesPendientesActualizar: any[] = [];
+  let bloquesPendientesEliminar: any[] = [];
+  let hayCambiosPendientes = false;
+  let errorMessage = "";
+
   // Estados para los modales de selección
   let mostrarModalMaterias = false;
   let mostrarModalCursos = false;
+  let mostrarModalCarga = false;
   let materiaSeleccionada: any = null;
   let cursoSeleccionado: any = null;
+
+
+
+    // === ASIGNACIONES ===
+  
+  let asignacionesGuardadas: any[] = [];
+  let asignacionesParaEliminar: any[] = [];
 
   async function cargarAuxiliares() {
     try {
@@ -107,6 +134,66 @@
         ));
       }
 
+      // --- Persistir bloques pendientes (si los hay) ---
+      // 1) Eliminar
+      if (bloquesPendientesEliminar.length > 0) {
+        for (const b of bloquesPendientesEliminar) {
+          if (b.id_bloque) {
+            await fetch(`${API_URL}/bloques/${b.id_bloque}`, { method: 'DELETE' });
+          }
+        }
+      }
+      
+      // 2) Actualizar
+      if (bloquesPendientesActualizar.length > 0) {
+        for (const b of bloquesPendientesActualizar) {
+          const body = {
+            id_profesor: idProf,
+            id_curso: b.id_curso,
+            id_materia: b.id_materia,
+            dia_semana: b.dia_semana,
+            hora_inicio: (b.hora_inicio && b.hora_inicio.split(':').length === 2) ? `${b.hora_inicio}:00` : b.hora_inicio,
+            hora_fin: (b.hora_fin && b.hora_fin.split(':').length === 2) ? `${b.hora_fin}:00` : b.hora_fin,
+            gestion: b.gestion || "2025",
+            observaciones: b.observaciones || null
+          };
+          if (b.id_bloque) {
+            await fetch(`${API_URL}/bloques/${b.id_bloque}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(body)
+            });
+          }
+        }
+      }
+      
+      // 3) Crear
+      if (bloquesPendientesCrear.length > 0) {
+        for (const b of bloquesPendientesCrear) {
+          const body = {
+            id_profesor: idProf,
+            id_curso: b.id_curso,
+            id_materia: b.id_materia,
+            dia_semana: b.dia_semana,
+            hora_inicio: (b.hora_inicio && b.hora_inicio.split(':').length === 2) ? `${b.hora_inicio}:00` : b.hora_inicio,
+            hora_fin: (b.hora_fin && b.hora_fin.split(':').length === 2) ? `${b.hora_fin}:00` : b.hora_fin,
+            gestion: b.gestion || "2025",
+            observaciones: b.observaciones || null
+          };
+          await fetch(`${API_URL}/bloques`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+          });
+        }
+      }
+
+      // Limpiar colas de bloques
+      bloquesPendientesCrear = [];
+      bloquesPendientesActualizar = [];
+      bloquesPendientesEliminar = [];
+      hayCambiosPendientes = false;
+
       alert(`Profesor ${isEditMode ? 'actualizado' : 'creado'} exitosamente`);
       dispatch('save', { 
         ...profesorCreado, 
@@ -131,6 +218,17 @@
       return;
     }
     mostrarModalCursos = true;
+  }
+
+  // Abrir modal de carga — ahora también si hay asignaciones locales o guardadas aunque profesor no exista
+  function abrirModalCarga() {
+    const totalAsignaciones = (asignacionesGuardadas.length + asignacionesPendientes.length);
+    // permitir abrir si ya existe el profesor o si hay asignaciones (locales o guardadas)
+    if (!profesorCreado && totalAsignaciones === 0) {
+      alert("Primero asigne al menos una materia/curso (local o desde BD) antes de gestionar la carga horaria.");
+      return;
+    }
+    mostrarModalCarga = true;
   }
 
   // Cuando se selecciona una materia
@@ -169,6 +267,17 @@
         alert("Esta combinación ya está en la lista");
       }
     }
+  }
+
+  // Handler para cambios temporales del modal AsignarCarga
+  function onGuardarCargaTemporal(e: CustomEvent) {
+    const { bloques, eliminar } = e.detail;
+    bloquesPendientesCrear = bloques.filter((b: any) => !b.id_bloque).map((b: any) => ({ ...b }));
+    bloquesPendientesActualizar = bloques.filter((b: any) => b.id_bloque).map((b: any) => ({ ...b }));
+    bloquesPendientesEliminar = eliminar || [];
+    hayCambiosPendientes = true;
+    mostrarModalCarga = false;
+    errorMessage = "✅ Cambios de carga horaria preparados. Se guardarán al crear el profesor.";
   }
 
   // Eliminar asignación pendiente
@@ -336,6 +445,21 @@
           </div>
         </div>
 
+        <div style="display:flex; gap:12px; align-items:center; margin-bottom:12px;">
+          <button 
+            class="btn-carga-horaria" 
+            on:click={abrirModalCarga} 
+            disabled={!profesorCreado && (asignacionesGuardadas.concat(asignacionesPendientes).length === 0)}
+          >
+            📅 Asignar Carga Horaria
+          </button>
+          {#if !profesorCreado}
+            <small style="color:#64748b;">
+              (Disponible después de crear el profesor o si ya agregó al menos una materia/curso)
+            </small>
+          {/if}
+        </div>
+
         <!-- Lista de asignaciones pendientes -->
         {#if asignacionesPendientes.length > 0}
           <div class="asignaciones-lista">
@@ -378,6 +502,16 @@
   on:cursoSeleccionado={onCursoSeleccionado}
   on:cerrar={() => mostrarModalCursos = false}
 />
+
+<AsignarCarga
+  mostrar={mostrarModalCarga}
+  profesor={profesorCreado || profesor}
+  asignaciones={asignacionesGuardadas.concat(asignacionesPendientes)}
+  autoSave={false}
+  on:guardarTemporal={onGuardarCargaTemporal}
+  on:cerrar={() => mostrarModalCarga = false}
+/>
+
 
 <style>
   /* CONTENEDOR PRINCIPAL CON SCROLL */
@@ -683,4 +817,14 @@
       margin-top: 4px;
     }
   }
+
+  .btn-carga-horaria {
+    background: #0ea5e9;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+   }
+   .btn-carga-horaria:disabled { background:#cbd5e1; cursor: not-allowed; }
 </style>
