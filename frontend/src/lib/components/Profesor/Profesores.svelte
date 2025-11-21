@@ -41,14 +41,17 @@
 
   // ==================== UTILIDADES ====================
   function hash(data: any) {
-    return JSON.stringify(data).split("").reduce((a, b) => (a = ((a << 5) - a) + b.charCodeAt(0)) & a, 0).toString();
+    return JSON.stringify(data)
+      .split("")
+      .reduce((a, b) => (a = (a << 5) - a + b.charCodeAt(0)) & a, 0)
+      .toString();
   }
 
   function calcularHoras(inicio: string, fin: string): number {
     try {
       const [hi, mi] = inicio.split(":").map(Number);
       const [hf, mf] = fin.split(":").map(Number);
-      return (hf + mf / 60) - (hi + mi / 60);
+      return hf + mf / 60 - (hi + mi / 60);
     } catch {
       return 0;
     }
@@ -72,11 +75,20 @@
       if (!res.ok) return 0;
       const bloques = await res.json();
       if (!Array.isArray(bloques)) return 0;
-      return Math.round(bloques.reduce((t: number, b: any) => t + calcularHoras(b.hora_inicio, b.hora_fin), 0) * 10) / 10;
+      return (
+        Math.round(
+          bloques.reduce(
+            (t: number, b: any) => t + calcularHoras(b.hora_inicio, b.hora_fin),
+            0,
+          ) * 10,
+        ) / 10
+      );
     } catch {
       return 0;
     }
   }
+
+  let lastHash = "";
 
   async function cargarProfesores(silent = false) {
     if (!silent) isLoading = true;
@@ -85,25 +97,32 @@
       if (!res.ok) return;
       const data = await res.json();
       const newHash = hash(data);
-      if (newHash !== hash(profesores)) {
-        profesores = data;
-        hasChanges = true;
 
+      // Only update if raw data actually changed
+      if (newHash !== lastHash) {
+        lastHash = newHash;
+
+        // 1. Fetch loads for the NEW data first
         await Promise.all(
-          profesores.map(async (p) => {
+          data.map(async (p: any) => {
             const id = p.id ?? p.id_persona;
             if (id) cargas[id] = await cargarCarga(id);
-          })
+          }),
         );
 
-        profesores = profesores.map(p => ({
+        // 2. Merge loads into the new data
+        const newProfesores = data.map((p: any) => ({
           ...p,
-          cargaHoraria: cargas[p.id ?? p.id_persona ?? 0] || 0
+          cargaHoraria: cargas[p.id ?? p.id_persona ?? 0] || 0,
         }));
+
+        // 3. Update state in one go to prevent flickering
+        profesores = newProfesores;
+        hasChanges = true;
       }
     } finally {
       if (!silent) isLoading = false;
-      setTimeout(() => hasChanges = false, 1000);
+      setTimeout(() => (hasChanges = false), 1000);
     }
   }
 
@@ -146,7 +165,9 @@
   });
 
   // ==================== ACCIONES ====================
-  function abrirNuevo() { mostrarNuevo = true; }
+  function abrirNuevo() {
+    mostrarNuevo = true;
+  }
   function abrirEditar(p: Profesor) {
     profesorEditando = p;
     mostrarEditar = true;
@@ -160,7 +181,9 @@
 
   async function onSave(e: CustomEvent<Profesor>) {
     const saved = e.detail;
-    const idx = profesores.findIndex(p => (p.id ?? p.id_persona) === (saved.id ?? saved.id_persona));
+    const idx = profesores.findIndex(
+      (p) => (p.id ?? p.id_persona) === (saved.id ?? saved.id_persona),
+    );
     if (idx >= 0) profesores[idx] = saved;
     else profesores = [...profesores, saved];
     profesores = profesores;
@@ -170,12 +193,15 @@
   }
 
   // ==================== FILTROS ====================
-  $: filtrados = profesores.filter(p => {
+  $: filtrados = profesores.filter((p) => {
     const q = searchQuery.toLowerCase();
     const okNombre = p.nombres.toLowerCase().includes(q);
-    const okMateria = p.materias?.some(m => m.toLowerCase().includes(q)) ?? false;
-    const okCurso = p.cursos?.some(c => c.toLowerCase().includes(q)) ?? false;
-    const okMateriaSelect = materiaSeleccionada === "todas" || p.materias?.includes(materiaSeleccionada);
+    const okMateria =
+      p.materias?.some((m) => m.toLowerCase().includes(q)) ?? false;
+    const okCurso = p.cursos?.some((c) => c.toLowerCase().includes(q)) ?? false;
+    const okMateriaSelect =
+      materiaSeleccionada === "todas" ||
+      p.materias?.includes(materiaSeleccionada);
     return (okNombre || okMateria || okCurso) && okMateriaSelect;
   });
 </script>
@@ -183,11 +209,13 @@
 {#if mostrarNuevo}
   <NuevoProfesor on:save={onSave} on:cancel={cerrarForms} />
 {:else if mostrarEditar && profesorEditando}
-  <EditarProfesores profesor={profesorEditando} on:save={onSave} on:cancel={cerrarForms} />
+  <EditarProfesores
+    profesor={profesorEditando}
+    on:save={onSave}
+    on:cancel={cerrarForms}
+  />
 {:else}
-
-  <div class="profesores-container">
-
+  <div class="profesores-container panel">
     <!-- TÍTULO -->
     <div class="title-section">
       <h1>Profesores y Materias</h1>
@@ -203,7 +231,11 @@
 
     <!-- FILTROS -->
     <div class="filters">
-      <input type="text" placeholder="Buscar por nombre o materia..." bind:value={searchQuery} />
+      <input
+        type="text"
+        placeholder="Buscar por nombre o materia..."
+        bind:value={searchQuery}
+      />
       <div class="materia-filter">
         <select bind:value={materiaSeleccionada}>
           <option value="todas">Todas las materias</option>
@@ -247,7 +279,11 @@
                 <span>{p.cargaHoraria ?? 0} h/sem</span>
               </div>
 
-              <span class="estado {p.estado_laboral?.toLowerCase() === 'activo' ? 'activo' : 'inactivo'}">
+              <span
+                class="estado {p.estado_laboral?.toLowerCase() === 'activo'
+                  ? 'activo'
+                  : 'inactivo'}"
+              >
                 {p.estado_laboral || "N/A"}
               </span>
             </div>
@@ -269,9 +305,7 @@
     --muted: #64748b;
   }
 
-  .profesores-container {
-    width: 100%;
-  }
+  /* .profesores-container removed */
 
   /* ==================== TÍTULO ==================== */
   .title-section {
@@ -291,7 +325,6 @@
 
   /* ==================== BOTÓN A LA DERECHA ==================== */
   .button-row {
-    width: 100%;
     display: flex;
     justify-content: flex-end;
     margin-bottom: 24px;
@@ -484,5 +517,12 @@
     color: var(--muted);
     padding: 30px;
     font-size: 1rem;
+  }
+  .panel {
+    background: #fff;
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 6px 18px rgba(25, 40, 60, 0.02);
+    border: 1px solid #eef6fa;
   }
 </style>

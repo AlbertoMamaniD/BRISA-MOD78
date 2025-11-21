@@ -3,14 +3,10 @@
   import Profesores from "./components/Profesor/Profesores.svelte";
   import Cursos from "./components/Cursos/Cursos.svelte";
   import Materias from "./components/Materias/Materias.svelte";
-  import {
-    Home,
-    Users,
-    BookOpen,
-    Layers,
-    LogOut,
-  } from "lucide-svelte";
+  import { Home, Users, BookOpen, Layers, LogOut } from "lucide-svelte";
   import { writable } from "svelte/store";
+
+  import Header from "./header.svelte";
 
   // =============== SIDEBAR ===============
   const abierto = writable(true);
@@ -20,15 +16,16 @@
   }
 
   // Items y vista asociada (solo dashboard/profesores/cursos/materias navegan)
-  let currentView: 'dashboard' | 'profesores' | 'cursos' | 'materias' = 'dashboard';
+  let currentView: "dashboard" | "profesores" | "cursos" | "materias" =
+    "dashboard";
 
   const menuItems = [
-    { icon: Home, label: "Dashboard", view: 'dashboard' },
+    { icon: Home, label: "Dashboard", view: "dashboard" },
     { icon: Users, label: "Usuarios y Roles" },
     { icon: BookOpen, label: "Estudiantes" },
-    { icon: BookOpen, label: "Profesores", view: 'profesores' },
-    { icon: Layers, label: "Cursos", view: 'cursos' },
-    { icon: Layers, label: "Materias", view: 'materias' },
+    { icon: BookOpen, label: "Profesores", view: "profesores" },
+    { icon: Layers, label: "Cursos", view: "cursos" },
+    { icon: Layers, label: "Materias", view: "materias" },
     { icon: Layers, label: "Administrativos" },
     { icon: Layers, label: "Retiros Tempranos" },
     { icon: Layers, label: "Incidentes" },
@@ -39,27 +36,27 @@
   function navigateTo(view: string) {
     if (!view) return;
     currentView = view as any;
-    const path = view === 'dashboard' ? '/' : `/${view}`;
-    history.pushState({ view }, '', path);
+    const path = view === "dashboard" ? "/" : `/${view}`;
+    history.pushState({ view }, "", path);
   }
 
   onMount(() => {
     // inicializar desde la ruta actual
-    const p = window.location.pathname.replace(/\/+$/,'') || '/';
-    if (p === '/' || p === '/dashboard') currentView = 'dashboard';
-    else if (p.startsWith('/profesores')) currentView = 'profesores';
-    else if (p.startsWith('/cursos')) currentView = 'cursos';
-    else if (p.startsWith('/materias')) currentView = 'materias';
+    const p = window.location.pathname.replace(/\/+$/, "") || "/";
+    if (p === "/" || p === "/dashboard") currentView = "dashboard";
+    else if (p.startsWith("/profesores")) currentView = "profesores";
+    else if (p.startsWith("/cursos")) currentView = "cursos";
+    else if (p.startsWith("/materias")) currentView = "materias";
 
     const onPop = () => {
-      const pp = window.location.pathname.replace(/\/+$/,'') || '/';
-      if (pp === '/' || pp === '/dashboard') currentView = 'dashboard';
-      else if (pp.startsWith('/profesores')) currentView = 'profesores';
-      else if (pp.startsWith('/cursos')) currentView = 'cursos';
-      else if (pp.startsWith('/materias')) currentView = 'materias';
+      const pp = window.location.pathname.replace(/\/+$/, "") || "/";
+      if (pp === "/" || pp === "/dashboard") currentView = "dashboard";
+      else if (pp.startsWith("/profesores")) currentView = "profesores";
+      else if (pp.startsWith("/cursos")) currentView = "cursos";
+      else if (pp.startsWith("/materias")) currentView = "materias";
     };
-    window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
   });
 </script>
 
@@ -90,7 +87,9 @@
       {#each menuItems as item, i}
         <div
           class="menu-item"
-          class:active={item.view ? currentView === item.view : (i === 3 && currentView === 'profesores')}
+          class:active={item.view
+            ? currentView === item.view
+            : i === 3 && currentView === "profesores"}
           on:click={() => {
             if (item.label === "Cerrar Sesión") {
               console.log("Cerrando sesión...");
@@ -118,22 +117,12 @@
 
   <!-- ====================== CONTENIDO PRINCIPAL ====================== -->
   <div class="main-wrap">
-    <header class="topbar">
-      <div class="controls"></div>
-      <div class="top-actions">
-        <!-- Puedes agregar un botón + Nueva Entidad aquí cuando lo necesites -->
-        <div class="user">
-          <div class="avatar">AM</div>
-          <div class="user-info">
-            <div class="name">Ana María López</div>
-            <div class="role">Administrador</div>
-          </div>
-        </div>
-      </div>
-    </header>
+    <Header sidebarOpen={$abierto} />
 
-    <main>
-      {#if currentView === 'dashboard'}
+    <main
+      class:full-width={currentView === "cursos" || currentView === "materias"}
+    >
+      {#if currentView === "dashboard"}
         <section class="page-header">
           <h1>Dashboard</h1>
           <p>Descripción o instrucciones de esta sección</p>
@@ -142,18 +131,12 @@
           <div class="panel-header"><h3>Contenido</h3></div>
           <div class="empty-state"><p>Panel de inicio</p></div>
         </section>
-      {:else if currentView === 'profesores'}
-        <section class="panel">
-          <Profesores />
-        </section>
-      {:else if currentView === 'cursos'}
-        <section class="panel">
-          <Cursos />
-        </section>
-      {:else if currentView === 'materias'}
-        <section class="panel">
-          <Materias />
-        </section>
+      {:else if currentView === "profesores"}
+        <Profesores />
+      {:else if currentView === "cursos"}
+        <Cursos />
+      {:else if currentView === "materias"}
+        <Materias />
       {/if}
     </main>
   </div>
@@ -323,65 +306,15 @@
     margin-left: 90px;
   }
 
-  .topbar {
-    height: 72px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 28px;
-    background: #f6fafc;
-    border-bottom: 1px solid #eef6f9;
-    position: fixed;
-    top: 0;
-    right: 0;
-    left: 260px;
-    z-index: 10;
-    transition: all 0.3s ease-in-out;
-  }
-
-  aside:not(.abierto) ~ .main-wrap .topbar {
-    left: 90px;
-  }
-
-  .top-actions {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-
-  .user {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .user .avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 999px;
-    background: #9aa9ff;
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-  }
-
-  .user-info .name {
-    font-weight: 600;
-    color: #1e293b;
-  }
-
-  .user-info .role {
-    font-size: 0.8rem;
-    color: #6b7f86;
-  }
-
   main {
-    padding: 96px 36px 24px;
+    padding: 24px 36px 24px;
     margin-top: 72px;
     overflow-y: auto;
     height: calc(100vh - 72px);
+  }
+
+  main.full-width {
+    padding: 0;
   }
 
   .page-header h1 {
@@ -439,14 +372,8 @@
     .main-wrap {
       margin-left: 90px;
     }
-    .topbar {
-      left: 90px;
-    }
     .brand-text,
     .menu-item .label {
-      display: none;
-    }
-    .user-info {
       display: none;
     }
 
@@ -455,12 +382,6 @@
       width: 20px;
       height: 20px;
       min-width: 20px;
-    }
-  }
-
-  @media (max-width: 480px) {
-    .topbar {
-      padding: 16px;
     }
   }
 </style>

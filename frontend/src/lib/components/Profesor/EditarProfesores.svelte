@@ -34,20 +34,33 @@
 
   // === ESTADOS ===
   let formData = {
-    ci: "", nombres: "", apellido_paterno: "", apellido_materno: "", 
-    direccion: "", telefono: "", correo: "",
-    tipo_persona: "profesor", estado_laboral: "activo",
-    id_persona: null as number | null, id_profesor: null as number | null,
-    especialidad: "", titulo_academico: "", nivel_enseñanza: "todos", 
+    ci: "",
+    nombres: "",
+    apellido_paterno: "",
+    apellido_materno: "",
+    direccion: "",
+    telefono: "",
+    correo: "",
+    tipo_persona: "profesor",
+    estado_laboral: "activo",
+    id_persona: null as number | null,
+    id_profesor: null as number | null,
+    especialidad: "",
+    titulo_academico: "",
+    nivel_enseñanza: "todos",
     observaciones_profesor: "",
-    id_cargo: null as number | null
+    id_cargo: null as number | null,
   };
 
-  let formErrors = { 
-    ci: false, nombres: false, apellido_paterno: false, correo: false,
-    especialidad: false, titulo_academico: false 
+  let formErrors = {
+    ci: false,
+    nombres: false,
+    apellido_paterno: false,
+    correo: false,
+    especialidad: false,
+    titulo_academico: false,
   };
-  
+
   let cargando = false;
   let eliminando = false;
   let errorMessage = "";
@@ -115,7 +128,7 @@
         titulo_academico: data.titulo_academico || "",
         nivel_enseñanza: data.nivel_enseñanza || "todos",
         observaciones_profesor: data.observaciones_profesor || "",
-        id_cargo: data.id_cargo || null
+        id_cargo: data.id_cargo || null,
       };
 
       // Cargar asignaciones
@@ -134,13 +147,15 @@
       const res = await fetch(`${API_URL}/${idPersona}/asignaciones`);
       if (res.ok) {
         const data = await res.json();
-        asignacionesGuardadas = Array.isArray(data) ? data.map((a: any) => ({
-          id_materia: a.id_materia,
-          id_curso: a.id_curso,
-          nombre_materia: a.nombre_materia,
-          nombre_curso: a.nombre_curso,
-          existeEnBD: true
-        })) : [];
+        asignacionesGuardadas = Array.isArray(data)
+          ? data.map((a: any) => ({
+              id_materia: a.id_materia,
+              id_curso: a.id_curso,
+              nombre_materia: a.nombre_materia,
+              nombre_curso: a.nombre_curso,
+              existeEnBD: true,
+            }))
+          : [];
       } else {
         console.error("Error cargando asignaciones:", res.status);
       }
@@ -150,21 +165,34 @@
   }
 
   function resetForm() {
-    formData = { 
-      ci: "", nombres: "", apellido_paterno: "", apellido_materno: "", 
-      direccion: "", telefono: "", correo: "",
-      tipo_persona: "profesor", estado_laboral: "activo", 
-      id_persona: null, id_profesor: null,
-      especialidad: "", titulo_academico: "", nivel_enseñanza: "todos", 
+    formData = {
+      ci: "",
+      nombres: "",
+      apellido_paterno: "",
+      apellido_materno: "",
+      direccion: "",
+      telefono: "",
+      correo: "",
+      tipo_persona: "profesor",
+      estado_laboral: "activo",
+      id_persona: null,
+      id_profesor: null,
+      especialidad: "",
+      titulo_academico: "",
+      nivel_enseñanza: "todos",
       observaciones_profesor: "",
-      id_cargo: null
+      id_cargo: null,
     };
     asignacionesPendientes = [];
     asignacionesGuardadas = [];
     asignacionesParaEliminar = [];
-    formErrors = { 
-      ci: false, nombres: false, apellido_paterno: false, correo: false,
-      especialidad: false, titulo_academico: false 
+    formErrors = {
+      ci: false,
+      nombres: false,
+      apellido_paterno: false,
+      correo: false,
+      especialidad: false,
+      titulo_academico: false,
     };
     errorMessage = "";
     hayCambiosPendientes = false;
@@ -176,17 +204,39 @@
   // === VALIDACIÓN ===
   function validarForm() {
     let ok = true;
-    formErrors = { 
-      ci: false, nombres: false, apellido_paterno: false, correo: false,
-      especialidad: false, titulo_academico: false 
+    formErrors = {
+      ci: false,
+      nombres: false,
+      apellido_paterno: false,
+      correo: false,
+      especialidad: false,
+      titulo_academico: false,
     };
 
-    if (!formData.ci?.trim()) { formErrors.ci = true; ok = false; }
-    if (!formData.nombres?.trim()) { formErrors.nombres = true; ok = false; }
-    if (!formData.apellido_paterno?.trim()) { formErrors.apellido_paterno = true; ok = false; }
-    if (!formData.correo?.includes("@")) { formErrors.correo = true; ok = false; }
-    if (!formData.especialidad?.trim()) { formErrors.especialidad = true; ok = false; }
-    if (!formData.titulo_academico?.trim()) { formErrors.titulo_academico = true; ok = false; }
+    if (!formData.ci?.trim()) {
+      formErrors.ci = true;
+      ok = false;
+    }
+    if (!formData.nombres?.trim()) {
+      formErrors.nombres = true;
+      ok = false;
+    }
+    if (!formData.apellido_paterno?.trim()) {
+      formErrors.apellido_paterno = true;
+      ok = false;
+    }
+    if (!formData.correo?.includes("@")) {
+      formErrors.correo = true;
+      ok = false;
+    }
+    if (!formData.especialidad?.trim()) {
+      formErrors.especialidad = true;
+      ok = false;
+    }
+    if (!formData.titulo_academico?.trim()) {
+      formErrors.titulo_academico = true;
+      ok = false;
+    }
 
     return ok;
   }
@@ -224,23 +274,31 @@
           titulo_academico: formData.titulo_academico,
           nivel_enseñanza: formData.nivel_enseñanza,
           observaciones_profesor: formData.observaciones_profesor || null,
-          id_cargo: formData.id_cargo
-        })
+          id_cargo: formData.id_cargo,
+        }),
       });
 
       if (!resProf.ok) {
         const errorData = await resProf.json();
-        throw new Error(errorData.detail || "Error al actualizar los datos del profesor");
+        throw new Error(
+          errorData.detail || "Error al actualizar los datos del profesor",
+        );
       }
       const profActualizado = await resProf.json();
 
       // 2. Eliminar asignaciones marcadas
       if (asignacionesParaEliminar.length > 0) {
         for (const asignacion of asignacionesParaEliminar) {
-          const res = await fetch(`${API_URL}/asignaciones?id_profesor=${profActualizado.id_profesor}&id_curso=${asignacion.id_curso}&id_materia=${asignacion.id_materia}`, {
-            method: "DELETE"
-          });
-          if (!res.ok) throw new Error(`Error al eliminar asignación: ${asignacion.nombre_materia}`);
+          const res = await fetch(
+            `${API_URL}/asignaciones?id_profesor=${profActualizado.id_profesor}&id_curso=${asignacion.id_curso}&id_materia=${asignacion.id_materia}`,
+            {
+              method: "DELETE",
+            },
+          );
+          if (!res.ok)
+            throw new Error(
+              `Error al eliminar asignación: ${asignacion.nombre_materia}`,
+            );
         }
       }
 
@@ -253,10 +311,13 @@
             body: JSON.stringify({
               id_profesor: profActualizado.id_profesor,
               id_materia: asignacion.id_materia,
-              id_curso: asignacion.id_curso
-            })
+              id_curso: asignacion.id_curso,
+            }),
           });
-          if (!res.ok) throw new Error(`Error al crear asignación: ${asignacion.nombre_materia}`);
+          if (!res.ok)
+            throw new Error(
+              `Error al crear asignación: ${asignacion.nombre_materia}`,
+            );
         }
       }
 
@@ -265,12 +326,15 @@
       if (bloquesPendientesEliminar.length > 0) {
         for (const b of bloquesPendientesEliminar) {
           if (b.id_bloque) {
-            const res = await fetch(`${API_URL}/bloques/${b.id_bloque}`, { method: "DELETE" });
-            if (!res.ok) throw new Error(`Error al eliminar bloque ${b.id_bloque}`);
+            const res = await fetch(`${API_URL}/bloques/${b.id_bloque}`, {
+              method: "DELETE",
+            });
+            if (!res.ok)
+              throw new Error(`Error al eliminar bloque ${b.id_bloque}`);
           }
         }
       }
-      
+
       // 4.2 Actualizar bloques existentes
       if (bloquesPendientesActualizar.length > 0) {
         for (const b of bloquesPendientesActualizar) {
@@ -279,20 +343,27 @@
             id_curso: b.id_curso,
             id_materia: b.id_materia,
             dia_semana: b.dia_semana,
-            hora_inicio: (b.hora_inicio && b.hora_inicio.split(':').length === 2) ? `${b.hora_inicio}:00` : b.hora_inicio,
-            hora_fin: (b.hora_fin && b.hora_fin.split(':').length === 2) ? `${b.hora_fin}:00` : b.hora_fin,
+            hora_inicio:
+              b.hora_inicio && b.hora_inicio.split(":").length === 2
+                ? `${b.hora_inicio}:00`
+                : b.hora_inicio,
+            hora_fin:
+              b.hora_fin && b.hora_fin.split(":").length === 2
+                ? `${b.hora_fin}:00`
+                : b.hora_fin,
             gestion: b.gestion,
-            observaciones: b.observaciones || null
+            observaciones: b.observaciones || null,
           };
           const res = await fetch(`${API_URL}/bloques/${b.id_bloque}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body)
+            body: JSON.stringify(body),
           });
-          if (!res.ok) throw new Error(`Error al actualizar bloque ${b.id_bloque}`);
+          if (!res.ok)
+            throw new Error(`Error al actualizar bloque ${b.id_bloque}`);
         }
       }
-      
+
       // 4.3 Crear nuevos bloques
       if (bloquesPendientesCrear.length > 0) {
         for (const b of bloquesPendientesCrear) {
@@ -301,17 +372,24 @@
             id_curso: b.id_curso,
             id_materia: b.id_materia,
             dia_semana: b.dia_semana,
-            hora_inicio: (b.hora_inicio && b.hora_inicio.split(':').length === 2) ? `${b.hora_inicio}:00` : b.hora_inicio,
-            hora_fin: (b.hora_fin && b.hora_fin.split(':').length === 2) ? `${b.hora_fin}:00` : b.hora_fin,
+            hora_inicio:
+              b.hora_inicio && b.hora_inicio.split(":").length === 2
+                ? `${b.hora_inicio}:00`
+                : b.hora_inicio,
+            hora_fin:
+              b.hora_fin && b.hora_fin.split(":").length === 2
+                ? `${b.hora_fin}:00`
+                : b.hora_fin,
             gestion: b.gestion,
-            observaciones: b.observaciones || null
+            observaciones: b.observaciones || null,
           };
           const res = await fetch(`${API_URL}/bloques`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body)
+            body: JSON.stringify(body),
           });
-          if (!res.ok) throw new Error(`Error al crear bloque para ${b.nombre_materia}`);
+          if (!res.ok)
+            throw new Error(`Error al crear bloque para ${b.nombre_materia}`);
         }
       }
 
@@ -320,22 +398,21 @@
       bloquesPendientesActualizar = [];
       bloquesPendientesEliminar = [];
 
-       // 5. Éxito - recargar datos
-       errorMessage = "✅ Profesor actualizado exitosamente";
-       hayCambiosPendientes = false;
-       
-       // Recargar datos actualizados
-       setTimeout(() => {
-         cargarProfesor(profActualizado);
-         dispatch("save", profActualizado);
-       }, 1500);
+      // 5. Éxito - recargar datos
+      errorMessage = "✅ Profesor actualizado exitosamente";
+      hayCambiosPendientes = false;
 
-     } catch (err: any) {
-       errorMessage = `❌ Error: ${err.message}`;
-     } finally {
-       cargando = false;
-     }
-   }
+      // Recargar datos actualizados
+      setTimeout(() => {
+        cargarProfesor(profActualizado);
+        dispatch("save", profActualizado);
+      }, 1500);
+    } catch (err: any) {
+      errorMessage = `❌ Error: ${err.message}`;
+    } finally {
+      cargando = false;
+    }
+  }
 
   // === FUNCIONES PARA MODALES DE ASIGNACIÓN ===
   function abrirModalMaterias() {
@@ -362,13 +439,18 @@
   function onGuardarCargaTemporal(e: CustomEvent) {
     const { bloques, eliminar } = e.detail;
     // separar nuevos / existentes
-    bloquesPendientesCrear = bloques.filter((b: any) => !b.id_bloque).map((b: any) => ({ ...b }));
-    bloquesPendientesActualizar = bloques.filter((b: any) => b.id_bloque).map((b: any) => ({ ...b }));
+    bloquesPendientesCrear = bloques
+      .filter((b: any) => !b.id_bloque)
+      .map((b: any) => ({ ...b }));
+    bloquesPendientesActualizar = bloques
+      .filter((b: any) => b.id_bloque)
+      .map((b: any) => ({ ...b }));
     bloquesPendientesEliminar = eliminar || [];
 
     hayCambiosPendientes = true;
     mostrarModalCarga = false;
-    errorMessage = "✅ Cambios de carga horaria preparados. Presione 'Guardar Cambios' para persistirlos.";
+    errorMessage =
+      "✅ Cambios de carga horaria preparados. Presione 'Guardar Cambios' para persistirlos.";
   }
 
   function onMateriaSeleccionada(e: CustomEvent) {
@@ -380,24 +462,28 @@
   function onCursoSeleccionado(e: CustomEvent) {
     cursoSeleccionado = e.detail.curso;
     mostrarModalCursos = false;
-    
+
     // Agregar a la lista de asignaciones pendientes
     if (materiaSeleccionada && cursoSeleccionado) {
       const nuevaAsignacion = {
         id_materia: materiaSeleccionada.id_materia,
         id_curso: cursoSeleccionado.id_curso,
         nombre_materia: materiaSeleccionada.nombre_materia,
-        nombre_curso: cursoSeleccionado.nombre_curso
+        nombre_curso: cursoSeleccionado.nombre_curso,
       };
 
       // Verificar que no exista ya
-      const existe = asignacionesPendientes.some(a => 
-        a.id_materia === nuevaAsignacion.id_materia && 
-        a.id_curso === nuevaAsignacion.id_curso
-      ) || asignacionesGuardadas.some(a => 
-        a.id_materia === nuevaAsignacion.id_materia && 
-        a.id_curso === nuevaAsignacion.id_curso
-      );
+      const existe =
+        asignacionesPendientes.some(
+          (a) =>
+            a.id_materia === nuevaAsignacion.id_materia &&
+            a.id_curso === nuevaAsignacion.id_curso,
+        ) ||
+        asignacionesGuardadas.some(
+          (a) =>
+            a.id_materia === nuevaAsignacion.id_materia &&
+            a.id_curso === nuevaAsignacion.id_curso,
+        );
 
       if (!existe) {
         asignacionesPendientes = [...asignacionesPendientes, nuevaAsignacion];
@@ -411,8 +497,11 @@
   }
 
   function eliminarAsignacionPendiente(index: number) {
-    asignacionesPendientes = asignacionesPendientes.filter((_, i) => i !== index);
-    hayCambiosPendientes = asignacionesPendientes.length > 0 || asignacionesParaEliminar.length > 0;
+    asignacionesPendientes = asignacionesPendientes.filter(
+      (_, i) => i !== index,
+    );
+    hayCambiosPendientes =
+      asignacionesPendientes.length > 0 || asignacionesParaEliminar.length > 0;
   }
 
   // === ASIGNACIONES EXISTENTES ===
@@ -427,29 +516,35 @@
     const { index } = e.detail;
     const asig = asignacionesParaEliminar[index];
     asignacionesGuardadas = [...asignacionesGuardadas, asig];
-    asignacionesParaEliminar = asignacionesParaEliminar.filter((_, i) => i !== index);
-    hayCambiosPendientes = asignacionesPendientes.length > 0 || asignacionesParaEliminar.length > 0;
+    asignacionesParaEliminar = asignacionesParaEliminar.filter(
+      (_, i) => i !== index,
+    );
+    hayCambiosPendientes =
+      asignacionesPendientes.length > 0 || asignacionesParaEliminar.length > 0;
   }
 
   // === ELIMINAR PROFESOR ===
   async function eliminarProfesor() {
     if (!formData.id_persona) return;
-    
-    if (!confirm("¿Está seguro de eliminar este profesor? Esta acción no se puede deshacer.")) {
+
+    if (
+      !confirm(
+        "¿Está seguro de eliminar este profesor? Esta acción no se puede deshacer.",
+      )
+    ) {
       return;
     }
 
     eliminando = true;
     try {
-      const res = await fetch(`${API_URL}/${formData.id_persona}`, { 
-        method: "DELETE" 
+      const res = await fetch(`${API_URL}/${formData.id_persona}`, {
+        method: "DELETE",
       });
-      
+
       if (!res.ok) throw new Error("Error al eliminar el profesor");
-      
+
       dispatch("delete", { id: formData.id_persona });
       errorMessage = "✅ Profesor eliminado exitosamente";
-      
     } catch (err: any) {
       errorMessage = `❌ Error: ${err.message}`;
     } finally {
@@ -495,17 +590,29 @@
         {/if}
       </div>
       <div class="actions">
-        <button class="btn-delete" on:click={eliminarProfesor} disabled={eliminando || cargando}>
+        <button
+          class="btn-delete"
+          on:click={eliminarProfesor}
+          disabled={eliminando || cargando}
+        >
           {#if eliminando}
             <span class="spinner"></span> Eliminando...
           {:else}
             🗑️ Eliminar
           {/if}
         </button>
-        <button class="btn-outline" on:click={cancelar} disabled={cargando || eliminando}>
+        <button
+          class="btn-outline"
+          on:click={cancelar}
+          disabled={cargando || eliminando}
+        >
           Cancelar
         </button>
-        <button class="btn-primary" on:click={guardarCambios} disabled={cargando || eliminando || !hayCambiosPendientes}>
+        <button
+          class="btn-primary"
+          on:click={guardarCambios}
+          disabled={cargando || eliminando || !hayCambiosPendientes}
+        >
           {#if cargando}
             <span class="spinner"></span> Guardando...
           {:else}
@@ -517,7 +624,15 @@
 
     <!-- ALERTAS -->
     {#if errorMessage}
-      <div class="alert {errorMessage.includes('✅') ? 'alert-success' : errorMessage.includes('❌') ? 'alert-error' : errorMessage.includes('⚠️') ? 'alert-warning' : 'alert-info'}">
+      <div
+        class="alert {errorMessage.includes('✅')
+          ? 'alert-success'
+          : errorMessage.includes('❌')
+            ? 'alert-error'
+            : errorMessage.includes('⚠️')
+              ? 'alert-warning'
+              : 'alert-info'}"
+      >
         {errorMessage}
       </div>
     {/if}
@@ -542,9 +657,9 @@
         <div class="form-row">
           <div class="form-group">
             <label class:error={formErrors.ci}>Cédula de Identidad *</label>
-            <input 
-              type="text" 
-              bind:value={formData.ci} 
+            <input
+              type="text"
+              bind:value={formData.ci}
               disabled={cargando || eliminando}
               class:error={formErrors.ci}
               placeholder="Ej: 1234567"
@@ -552,7 +667,10 @@
           </div>
           <div class="form-group">
             <label>Estado Laboral</label>
-            <select bind:value={formData.estado_laboral} disabled={cargando || eliminando}>
+            <select
+              bind:value={formData.estado_laboral}
+              disabled={cargando || eliminando}
+            >
               <option value="activo">Activo</option>
               <option value="inactivo">Inactivo</option>
               <option value="licencia">Licencia</option>
@@ -564,9 +682,9 @@
         <div class="form-row">
           <div class="form-group full-width">
             <label class:error={formErrors.nombres}>Nombres Completos *</label>
-            <input 
-              type="text" 
-              bind:value={formData.nombres} 
+            <input
+              type="text"
+              bind:value={formData.nombres}
               disabled={cargando || eliminando}
               class:error={formErrors.nombres}
               placeholder="Ej: Juan Carlos"
@@ -576,10 +694,12 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label class:error={formErrors.apellido_paterno}>Apellido Paterno *</label>
-            <input 
-              type="text" 
-              bind:value={formData.apellido_paterno} 
+            <label class:error={formErrors.apellido_paterno}
+              >Apellido Paterno *</label
+            >
+            <input
+              type="text"
+              bind:value={formData.apellido_paterno}
               disabled={cargando || eliminando}
               class:error={formErrors.apellido_paterno}
               placeholder="Ej: Pérez"
@@ -587,9 +707,9 @@
           </div>
           <div class="form-group">
             <label>Apellido Materno</label>
-            <input 
-              type="text" 
-              bind:value={formData.apellido_materno} 
+            <input
+              type="text"
+              bind:value={formData.apellido_materno}
               disabled={cargando || eliminando}
               placeholder="Ej: González"
             />
@@ -603,9 +723,9 @@
         <div class="form-row">
           <div class="form-group">
             <label class:error={formErrors.correo}>Correo Electrónico *</label>
-            <input 
-              type="email" 
-              bind:value={formData.correo} 
+            <input
+              type="email"
+              bind:value={formData.correo}
               disabled={cargando || eliminando}
               class:error={formErrors.correo}
               placeholder="Ej: profesor@colegio.edu"
@@ -613,9 +733,9 @@
           </div>
           <div class="form-group">
             <label>Teléfono / Celular</label>
-            <input 
-              type="tel" 
-              bind:value={formData.telefono} 
+            <input
+              type="tel"
+              bind:value={formData.telefono}
               disabled={cargando || eliminando}
               placeholder="Ej: 78765432"
             />
@@ -625,9 +745,9 @@
         <div class="form-row">
           <div class="form-group full-width">
             <label>Dirección</label>
-            <input 
-              type="text" 
-              bind:value={formData.direccion} 
+            <input
+              type="text"
+              bind:value={formData.direccion}
               disabled={cargando || eliminando}
               placeholder="Ej: Av. Principal #123"
             />
@@ -641,19 +761,21 @@
         <div class="form-row">
           <div class="form-group">
             <label class:error={formErrors.especialidad}>Especialidad *</label>
-            <input 
-              type="text" 
-              bind:value={formData.especialidad} 
+            <input
+              type="text"
+              bind:value={formData.especialidad}
               disabled={cargando || eliminando}
               class:error={formErrors.especialidad}
               placeholder="Ej: Matemáticas"
             />
           </div>
           <div class="form-group">
-            <label class:error={formErrors.titulo_academico}>Título Académico *</label>
-            <input 
-              type="text" 
-              bind:value={formData.titulo_academico} 
+            <label class:error={formErrors.titulo_academico}
+              >Título Académico *</label
+            >
+            <input
+              type="text"
+              bind:value={formData.titulo_academico}
               disabled={cargando || eliminando}
               class:error={formErrors.titulo_academico}
               placeholder="Ej: Lic. en Educación"
@@ -664,7 +786,10 @@
         <div class="form-row">
           <div class="form-group">
             <label>Nivel de Enseñanza</label>
-            <select bind:value={formData.nivel_enseñanza} disabled={cargando || eliminando}>
+            <select
+              bind:value={formData.nivel_enseñanza}
+              disabled={cargando || eliminando}
+            >
               <option value="todos">Todos los niveles</option>
               <option value="inicial">Educación Inicial</option>
               <option value="primaria">Educación Primaria</option>
@@ -673,7 +798,10 @@
           </div>
           <div class="form-group">
             <label>Cargo</label>
-            <select bind:value={formData.id_cargo} disabled={cargando || eliminando}>
+            <select
+              bind:value={formData.id_cargo}
+              disabled={cargando || eliminando}
+            >
               <option value={null}>Seleccione un cargo</option>
               {#each cargos as cargo}
                 <option value={cargo.id_cargo}>{cargo.nombre_cargo}</option>
@@ -685,8 +813,8 @@
         <div class="form-row">
           <div class="form-group full-width">
             <label>Observaciones</label>
-            <textarea 
-              bind:value={formData.observaciones_profesor} 
+            <textarea
+              bind:value={formData.observaciones_profesor}
               disabled={cargando || eliminando}
               rows="3"
               placeholder="Observaciones adicionales..."
@@ -699,9 +827,10 @@
       <section>
         <h3>Materias y Cursos Asignados</h3>
         <p class="section-description">
-          Asignaciones actuales del profesor. Puede eliminar asignaciones marcándolas para eliminación.
+          Asignaciones actuales del profesor. Puede eliminar asignaciones
+          marcándolas para eliminación.
         </p>
-        
+
         {#if asignacionesGuardadas.length === 0}
           <div class="no-asignaciones">
             <p>📝 Este profesor no tiene asignaciones actualmente.</p>
@@ -711,13 +840,15 @@
             {#each asignacionesGuardadas as asignacion, index}
               <div class="asignacion-item">
                 <div class="asignacion-info">
-                  <span class="materia-nombre">{asignacion.nombre_materia}</span>
+                  <span class="materia-nombre">{asignacion.nombre_materia}</span
+                  >
                   <span class="separator">-</span>
                   <span class="curso-nombre">{asignacion.nombre_curso}</span>
                 </div>
-                <button 
+                <button
                   class="btn-eliminar-asignacion"
-                  on:click={() => onMarcarEliminar({ detail: { index, asignacion } })}
+                  on:click={() =>
+                    onMarcarEliminar({ detail: { index, asignacion } })}
                   disabled={cargando || eliminando}
                   title="Eliminar asignación"
                 >
@@ -740,11 +871,12 @@
             {#each asignacionesParaEliminar as asignacion, index}
               <div class="asignacion-item eliminada">
                 <div class="asignacion-info">
-                  <span class="materia-nombre">{asignacion.nombre_materia}</span>
+                  <span class="materia-nombre">{asignacion.nombre_materia}</span
+                  >
                   <span class="separator">-</span>
                   <span class="curso-nombre">{asignacion.nombre_curso}</span>
                 </div>
-                <button 
+                <button
                   class="btn-restaurar-asignacion"
                   on:click={() => onRestaurarAsignacion({ detail: { index } })}
                   disabled={cargando || eliminando}
@@ -764,14 +896,16 @@
         <p class="section-description">
           Seleccione materias y cursos para asignar al profesor
         </p>
-        
+
         <!-- Selectores tipo dropdown -->
         <div class="selectores-container">
           <div class="selector-group">
             <label>Materia</label>
             <div class="selector-input" on:click={abrirModalMaterias}>
               {#if materiaSeleccionada}
-                <span class="seleccionado">{materiaSeleccionada.nombre_materia}</span>
+                <span class="seleccionado"
+                  >{materiaSeleccionada.nombre_materia}</span
+                >
               {:else}
                 <span class="placeholder">Seleccione una materia</span>
               {/if}
@@ -781,12 +915,14 @@
 
           <div class="selector-group">
             <label>Curso</label>
-            <div 
-              class="selector-input {!materiaSeleccionada ? 'disabled' : ''}" 
+            <div
+              class="selector-input {!materiaSeleccionada ? 'disabled' : ''}"
               on:click={abrirModalCursos}
             >
               {#if cursoSeleccionado}
-                <span class="seleccionado">{cursoSeleccionado.nombre_curso}</span>
+                <span class="seleccionado"
+                  >{cursoSeleccionado.nombre_curso}</span
+                >
               {:else}
                 <span class="placeholder">Seleccione un curso</span>
               {/if}
@@ -802,11 +938,12 @@
             {#each asignacionesPendientes as asignacion, index}
               <div class="asignacion-item pendiente">
                 <div class="asignacion-info">
-                  <span class="materia-nombre">{asignacion.nombre_materia}</span>
+                  <span class="materia-nombre">{asignacion.nombre_materia}</span
+                  >
                   <span class="separator">-</span>
                   <span class="curso-nombre">{asignacion.nombre_curso}</span>
                 </div>
-                <button 
+                <button
                   class="btn-eliminar-pendiente"
                   on:click={() => eliminarAsignacionPendiente(index)}
                   disabled={cargando || eliminando}
@@ -833,7 +970,7 @@
               Asigne horarios específicos a las materias y cursos del profesor
             </p>
           </div>
-          <button 
+          <button
             class="btn-carga-horaria"
             on:click={abrirModalCarga}
             disabled={!formData.id_profesor || cargando || eliminando}
@@ -844,13 +981,16 @@
 
         {#if !formData.id_profesor}
           <div class="advertencia-carga">
-            <p>⚠️ Debe guardar los datos del profesor primero para poder asignar la carga horaria</p>
+            <p>
+              ⚠️ Debe guardar los datos del profesor primero para poder asignar
+              la carga horaria
+            </p>
           </div>
         {/if}
       </section>
 
       <!-- RESUMEN DE CAMBIOS -->
-      {#if (asignacionesPendientes.length > 0 || asignacionesParaEliminar.length > 0)}
+      {#if asignacionesPendientes.length > 0 || asignacionesParaEliminar.length > 0}
         <section class="resumen-cambios">
           <h3>Resumen de Cambios</h3>
           <div class="cambios-lista">
@@ -860,7 +1000,9 @@
                 {#each asignacionesPendientes as asignacion}
                   <div class="cambio-item nueva">
                     <span class="icon">➕</span>
-                    <span>{asignacion.nombre_materia} - {asignacion.nombre_curso}</span>
+                    <span
+                      >{asignacion.nombre_materia} - {asignacion.nombre_curso}</span
+                    >
                   </div>
                 {/each}
               </div>
@@ -868,11 +1010,15 @@
 
             {#if asignacionesParaEliminar.length > 0}
               <div class="cambio-grupo">
-                <h4>Asignaciones a Eliminar ({asignacionesParaEliminar.length})</h4>
+                <h4>
+                  Asignaciones a Eliminar ({asignacionesParaEliminar.length})
+                </h4>
                 {#each asignacionesParaEliminar as asignacion}
                   <div class="cambio-item eliminar">
                     <span class="icon">➖</span>
-                    <span>{asignacion.nombre_materia} - {asignacion.nombre_curso}</span>
+                    <span
+                      >{asignacion.nombre_materia} - {asignacion.nombre_curso}</span
+                    >
                   </div>
                 {/each}
               </div>
@@ -887,18 +1033,17 @@
 <!-- Modales de selección -->
 <AsignarMaterias
   mostrar={mostrarModalMaterias}
-  materiaSeleccionada={materiaSeleccionada}
+  {materiaSeleccionada}
   on:materiaSeleccionada={onMateriaSeleccionada}
-  on:cerrar={() => mostrarModalMaterias = false}
+  on:cerrar={() => (mostrarModalMaterias = false)}
 />
 
 <AsignarCursos
   mostrar={mostrarModalCursos}
-  cursoSeleccionado={cursoSeleccionado}
+  {cursoSeleccionado}
   on:cursoSeleccionado={onCursoSeleccionado}
-  on:cerrar={() => mostrarModalCursos = false}
+  on:cerrar={() => (mostrarModalCursos = false)}
 />
-
 
 <AsignarCarga
   mostrar={mostrarModalCarga}
@@ -906,23 +1051,24 @@
   asignaciones={asignacionesGuardadas.concat(asignacionesPendientes)}
   autoSave={false}
   on:guardarTemporal={onGuardarCargaTemporal}
-  on:cerrar={() => mostrarModalCarga = false}
+  on:cerrar={() => (mostrarModalCarga = false)}
 />
 
 <style>
+  /* CONTENEDOR PRINCIPAL CON SCROLL */
   .editar-profesor-container {
-    width: 100%;
-    height: 100vh;
-    overflow-y: auto;
+    /* width: 100%; removed to prevent overflow */
+    /* height: 100%; removed */
+    /* overflow-y: auto; removed */
     background: #f8fafc;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    padding: 20px;
   }
 
   .editar-profesor {
     background: #fff;
     border-radius: 12px;
     padding: 24px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     max-width: 900px;
     margin: 0 auto;
     min-height: fit-content;
@@ -932,8 +1078,8 @@
     display: flex;
     flex-direction: column;
     gap: 24px;
-    max-height: calc(100vh - 200px);
-    overflow-y: auto;
+    /* max-height: calc(100vh - 200px); removed */
+    /* overflow-y: auto; removed */
     padding-right: 8px;
   }
 
@@ -990,7 +1136,9 @@
     align-items: center;
   }
 
-  .btn-outline, .btn-primary, .btn-delete {
+  .btn-outline,
+  .btn-primary,
+  .btn-delete {
     padding: 10px 20px;
     border-radius: 8px;
     font-size: 0.9rem;
@@ -998,7 +1146,7 @@
     border: none;
     font-weight: 500;
     transition: all 0.2s;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   }
 
   .btn-outline {
@@ -1038,7 +1186,9 @@
     transform: translateY(-1px);
   }
 
-  .btn-outline:disabled, .btn-primary:disabled, .btn-delete:disabled {
+  .btn-outline:disabled,
+  .btn-primary:disabled,
+  .btn-delete:disabled {
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;
@@ -1050,7 +1200,7 @@
     margin-bottom: 16px;
     font-size: 0.9rem;
     border: 1px solid;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   }
 
   .alert-success {
@@ -1104,14 +1254,14 @@
     font-size: 1rem;
     color: #1e293b;
     font-weight: 600;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   }
 
   .section-description {
     margin: -8px 0 16px 0;
     color: #64748b;
     font-size: 0.9rem;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   }
 
   .form-row {
@@ -1139,30 +1289,37 @@
     font-size: 0.85rem;
     color: #475569;
     font-weight: 500;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   }
 
   .error {
     color: #dc2626;
   }
 
-  input, select, textarea {
+  input,
+  select,
+  textarea {
     padding: 10px 12px;
     border: 1.5px solid #e2e8f0;
     border-radius: 6px;
     font-size: 0.9rem;
     background: white;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;  color: black;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    color: black;
     transition: border-color 0.2s;
   }
 
-  input:focus, select:focus, textarea:focus {
+  input:focus,
+  select:focus,
+  textarea:focus {
     outline: none;
     border-color: #00cfe6;
-    box-shadow: 0 0 0 3px rgba(0,207,230,0.1);
+    box-shadow: 0 0 0 3px rgba(0, 207, 230, 0.1);
   }
 
-  input.error, select.error, textarea.error {
+  input.error,
+  select.error,
+  textarea.error {
     border-color: #dc2626;
   }
 
@@ -1223,7 +1380,8 @@
     color: #64748b;
   }
 
-  .asignaciones-lista, .asignaciones-pendientes-lista {
+  .asignaciones-lista,
+  .asignaciones-pendientes-lista {
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -1275,7 +1433,9 @@
     color: #475569;
   }
 
-  .btn-eliminar-asignacion, .btn-restaurar-asignacion, .btn-eliminar-pendiente {
+  .btn-eliminar-asignacion,
+  .btn-restaurar-asignacion,
+  .btn-eliminar-pendiente {
     background: none;
     border: none;
     cursor: pointer;
@@ -1309,7 +1469,9 @@
     background: #dc2626;
   }
 
-  .btn-eliminar-asignacion:disabled, .btn-restaurar-asignacion:disabled, .btn-eliminar-pendiente:disabled {
+  .btn-eliminar-asignacion:disabled,
+  .btn-restaurar-asignacion:disabled,
+  .btn-eliminar-pendiente:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
@@ -1347,7 +1509,6 @@
 
   .btn-carga-horaria:hover:not(:disabled) {
     background: #0284c7;
-    
   }
 
   .btn-carga-horaria:disabled {
@@ -1418,7 +1579,9 @@
   }
 
   @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   @media (max-width: 768px) {
@@ -1442,7 +1605,9 @@
       flex-wrap: wrap;
     }
 
-    .btn-outline, .btn-primary, .btn-delete {
+    .btn-outline,
+    .btn-primary,
+    .btn-delete {
       flex: 1;
       min-width: 120px;
     }
@@ -1484,7 +1649,9 @@
       flex-direction: column;
     }
 
-    .btn-outline, .btn-primary, .btn-delete {
+    .btn-outline,
+    .btn-primary,
+    .btn-delete {
       width: 100%;
     }
   }

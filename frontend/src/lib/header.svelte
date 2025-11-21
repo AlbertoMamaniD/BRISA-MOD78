@@ -1,12 +1,13 @@
 <script lang="ts">
-  // Simple header extracted from main
   export let userName = "Ana María López";
   export let role = "Administrador";
+  export let sidebarOpen = true;
 </script>
 
-<header class="topbar">
+<header class="topbar" class:sidebar-open={sidebarOpen}>
   <div class="controls"></div>
   <div class="top-actions">
+    <!-- Puedes agregar un botón + Nueva Entidad aquí cuando lo necesites -->
     <div class="user">
       <div class="avatar">AM</div>
       <div class="user-info">
@@ -29,9 +30,13 @@
     position: fixed;
     top: 0;
     right: 0;
-    left: 260px;
+    left: 90px; /* Default collapsed state width + margin or just base left */
     z-index: 10;
     transition: all 0.3s ease-in-out;
+  }
+
+  .topbar.sidebar-open {
+    left: 260px;
   }
 
   .top-actions {
@@ -46,7 +51,7 @@
     gap: 10px;
   }
 
-  .avatar {
+  .user .avatar {
     width: 40px;
     height: 40px;
     border-radius: 999px;
@@ -66,5 +71,20 @@
   .user-info .role {
     font-size: 0.8rem;
     color: #6b7f86;
+  }
+
+  @media (max-width: 768px) {
+    .topbar {
+      left: 90px !important; /* Override inline style or class if needed, but here just base rule */
+    }
+    .user-info {
+      display: none;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .topbar {
+      padding: 16px;
+    }
   }
 </style>
