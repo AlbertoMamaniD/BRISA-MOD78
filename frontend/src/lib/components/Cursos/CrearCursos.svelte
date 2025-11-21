@@ -86,7 +86,7 @@
 </script>
 
 <div class="modal-container">
-  <!-- Header del Modal -->
+  <!-- Header del Modal Crear -->
   <div class="modal-header">
     <div class="header-icon">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
